@@ -2,6 +2,32 @@
 
 All notable architectural changes. Keep in sync with implementation & version bumps.
 
+## [1.2.0] — 2026-09-04 — Gemini fallback AI + Yahoo Finance fundamentals/news
+### Added
+- **GeminiProvider** (`ai/gemini_provider.py`) via `google-genai` async client, behind the
+  same `AIProvider` interface — used as a configurable **fallback** (`AI_FALLBACK_PROVIDER=gemini`)
+  when the primary (OpenAI) provider fails. JSON output mode; deterministic bias/confidence
+  override preserved (AI never changes numbers). Model configurable via `GEMINI_MODEL`
+  (default `gemini-3.1-flash-lite`).
+- **AIService provider chain**: tries primary → fallbacks → graceful deterministic fallback.
+  The actual answering provider/model is recorded in the analysis + AI cache.
+- **YFinanceFundamentalProvider** + **YFinanceNewsProvider** (`providers/yfinance_provider.py`)
+  replace the pending TrueData integration. NSE symbols mapped to `.NS`; blocking calls run in a
+  threadpool with a timeout and are Redis-cached (fundamentals 6h, news 30m). Missing fields are
+  returned as null ("data unavailable"), never fabricated. `roce` and FII/DII split are not
+  provided by Yahoo → explicitly null.
+- **Scanner**: long-term scan concurrently prefetches fundamentals (semaphore=8) so 50 live
+  Yahoo calls don't dominate wall-time; results cached.
+- **Registry**: dynamic fundamental/news = yfinance when selected; AI primary + fallback wiring;
+  `provider_modes()` now reports fallback chain and per-role live status.
+### Notes
+- OpenAI account currently has no credits, so the **Gemini fallback is actively serving** live
+  AI explanations (verified: `ai.provider=gemini`).
+- Yahoo Finance `get_news` relevance for NSE tickers is weak (often returns unrelated market
+  headlines). Real data, but symbol relevance is not guaranteed — documented limitation.
+- Yahoo is a best-effort public source, not a contractual feed; values are labelled
+  `source=yfinance` with a retrieval timestamp.
+
 ## [1.1.0] — 2026-09-04 — Live providers (OpenAI + Zerodha Kite)
 ### Added
 - **OpenAIProvider** (`ai/openai_provider.py`) behind the existing `AIProvider` interface —

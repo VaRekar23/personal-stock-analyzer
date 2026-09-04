@@ -25,8 +25,9 @@ def make_cache_key(symbol: str, analysis_type: str, *, market_data_version: str,
 
 
 class AIService:
-    def __init__(self, provider):
+    def __init__(self, provider, fallbacks=None):
         self.provider = provider
+        self.fallbacks = list(fallbacks or [])
 
     async def explain(self, *, symbol: str, analysis_type: str, context: dict,
                       market_data_version: str, strategy_version: str,
@@ -51,10 +52,20 @@ class AIService:
 
         prompt = build_prompt(analysis_type, symbol)
         ctx = {**context, "prompt_version": prompt_version, "symbol": symbol}
-        try:
-            raw = await self.provider.generate(prompt, ctx, AIAnalysis.json_schema())
-            validated = AIAnalysis(**raw).model_dump()  # schema enforcement
-        except Exception as e:  # noqa: BLE001 — AI failure must not break analysis
+
+        # Try primary, then fallbacks (e.g. OpenAI -> Gemini). Deterministic
+        # values stay authoritative regardless of which provider answers.
+        chain = [self.provider, *self.fallbacks]
+        last_err = None
+        for provider in chain:
+            try:
+                raw = await provider.generate(prompt, ctx, AIAnalysis.json_schema())
+                validated = AIAnalysis(**raw).model_dump()  # schema enforcement
+                break
+            except Exception as e:  # noqa: BLE001 — try next provider
+                last_err = e
+                continue
+        else:
             score = context.get("score") or {}
             det_bias = (score.get("bias") or "").lower()
             return AIAnalysis(
@@ -62,17 +73,19 @@ class AIService:
                 confidence=float(score.get("confidence") or 0.0),
                 summary="AI explanation unavailable — deterministic analysis stands.",
                 provider=provider_name, model=model, prompt_version=prompt_version,
-                grounded=True, error=f"{type(e).__name__}: {e}",
+                grounded=True, error=f"{type(last_err).__name__}: {last_err}",
                 missing_data_warnings=[
-                    "AI provider error; deterministic values remain authoritative."],
+                    "All AI providers failed; deterministic values remain authoritative."],
             ).model_dump(), False
 
+        actual_provider = validated.get("provider") or provider_name
+        actual_model = validated.get("model") or model
         await cache.set_json(key, validated, DEFAULT_SETTINGS["cache"]["ai_ttl_seconds"])
         await db.execute(
             """INSERT INTO analysis.ai_analyses
                (cache_key, symbol, analysis_type, provider, model, prompt_version, result)
                VALUES ($1,$2,$3,$4,$5,$6,$7)
                ON CONFLICT (cache_key) DO NOTHING""",
-            key, symbol, analysis_type, provider_name, model, prompt_version,
+            key, symbol, analysis_type, actual_provider, actual_model, prompt_version,
             json.dumps(validated))
         return validated, False

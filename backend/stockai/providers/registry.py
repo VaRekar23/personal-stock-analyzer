@@ -5,12 +5,14 @@ a vendor directly. Selection is DYNAMIC so switching to a live provider (e.g.
 after a Kite login) takes effect without code changes:
   - market/portfolio -> Kite when DATA_PROVIDER=zerodha AND a Kite session exists,
     else the deterministic mock (clearly labelled).
-  - ai -> OpenAI when AI_PROVIDER=openai and a key is configured, else mock.
+  - fundamental/news -> Yahoo Finance (yfinance) when selected, else mock.
+  - ai -> OpenAI when configured; Gemini as a configurable FALLBACK; else mock.
 """
 from __future__ import annotations
 
 from ..core.config import (DATA_PROVIDER, FUNDAMENTAL_PROVIDER, NEWS_PROVIDER,
-                           AI_PROVIDER, OPENAI_API_KEY)
+                           AI_PROVIDER, AI_FALLBACK_PROVIDER, OPENAI_API_KEY,
+                           GEMINI_API_KEY)
 from ..core.logging_config import get_logger
 from .mock.market import MockMarketDataProvider
 from .mock.fundamental import MockFundamentalDataProvider
@@ -23,14 +25,17 @@ from ..ai.mock_provider import MockAIProvider
 logger = get_logger("stockai.registry")
 
 _mock_market = MockMarketDataProvider()
-_fundamental = MockFundamentalDataProvider()
-_news = MockNewsProvider()
+_mock_fundamental = MockFundamentalDataProvider()
+_mock_news = MockNewsProvider()
 _mock_portfolio = MockPortfolioProvider(_mock_market)
 _knowledge = NullKnowledgeProvider()
 
 _kite_market = None
 _kite_portfolio = None
+_yf_fundamental = None
+_yf_news = None
 _ai_singleton = None
+_ai_fallbacks = None
 
 
 def _kite_enabled() -> bool:
@@ -58,11 +63,23 @@ def portfolio_provider():
 
 
 def fundamental_provider():
-    return _fundamental
+    global _yf_fundamental
+    if FUNDAMENTAL_PROVIDER == "yfinance":
+        if _yf_fundamental is None:
+            from .yfinance_provider import YFinanceFundamentalProvider
+            _yf_fundamental = YFinanceFundamentalProvider()
+        return _yf_fundamental
+    return _mock_fundamental
 
 
 def news_provider():
-    return _news
+    global _yf_news
+    if NEWS_PROVIDER == "yfinance":
+        if _yf_news is None:
+            from .yfinance_provider import YFinanceNewsProvider
+            _yf_news = YFinanceNewsProvider()
+        return _yf_news
+    return _mock_news
 
 
 def ai_provider():
@@ -77,8 +94,33 @@ def ai_provider():
             return _ai_singleton
         except Exception as e:  # noqa: BLE001
             logger.warning("OpenAI init failed, falling back to mock: %s", e)
+    if AI_PROVIDER == "gemini" and GEMINI_API_KEY:
+        try:
+            from ..ai.gemini_provider import GeminiProvider
+            _ai_singleton = GeminiProvider()
+            return _ai_singleton
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Gemini init failed, falling back to mock: %s", e)
     _ai_singleton = MockAIProvider()
     return _ai_singleton
+
+
+def ai_fallback_providers() -> list:
+    """Ordered fallback providers tried when the primary AI provider fails."""
+    global _ai_fallbacks
+    if _ai_fallbacks is not None:
+        return _ai_fallbacks
+    out = []
+    if AI_FALLBACK_PROVIDER == "gemini" and GEMINI_API_KEY and getattr(
+            ai_provider(), "name", "mock") != "gemini":
+        try:
+            from ..ai.gemini_provider import GeminiProvider
+            out.append(GeminiProvider())
+            logger.info("AI fallback provider: gemini (%s)", out[-1].model)
+        except Exception as e:  # noqa: BLE001
+            logger.warning("Gemini fallback init failed: %s", e)
+    _ai_fallbacks = out
+    return out
 
 
 def knowledge_provider():
@@ -91,13 +133,19 @@ def data_source() -> str:
 
 def provider_modes() -> dict:
     ai = ai_provider()
+    fb = ai_fallback_providers()
+    fund = fundamental_provider()
+    news = news_provider()
     return {
         "data": {"selected": DATA_PROVIDER, "mode": data_source(),
                  "live": _kite_enabled()},
-        "fundamental": {"selected": FUNDAMENTAL_PROVIDER, "mode": _fundamental.mode, "live": False},
-        "news": {"selected": NEWS_PROVIDER, "mode": _news.mode, "live": False},
+        "fundamental": {"selected": FUNDAMENTAL_PROVIDER, "mode": fund.mode,
+                        "live": fund.mode == "yfinance"},
+        "news": {"selected": NEWS_PROVIDER, "mode": news.mode,
+                 "live": news.mode == "yfinance"},
         "ai": {"selected": AI_PROVIDER, "mode": getattr(ai, "name", "mock"),
                "model": getattr(ai, "model", "mock"),
-               "live": getattr(ai, "name", "mock") == "openai"},
+               "fallback": [getattr(p, "name", "?") for p in fb],
+               "live": getattr(ai, "name", "mock") in ("openai", "gemini")},
         "knowledge": {"selected": "null", "mode": _knowledge.mode, "live": False},
     }

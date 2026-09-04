@@ -34,7 +34,7 @@ class Orchestrator:
         self.warehouse = Warehouse(self.market)
         self.market_ctx_engine = MarketContextEngine(self.warehouse)
         self.sector_ctx_engine = SectorContextEngine(self.warehouse)
-        self.ai = AIService(registry.ai_provider())
+        self.ai = AIService(registry.ai_provider(), registry.ai_fallback_providers())
         self.weights = load_weights()
 
     async def _relative_strength(self, candles: list[dict], bench: list[dict],
@@ -164,6 +164,20 @@ class Orchestrator:
             return cached
 
         rows = []
+        if mode == "long_term":
+            # Prefetch fundamentals concurrently (bounded) so 50 sequential
+            # yfinance calls don't dominate wall-time; each call self-caches.
+            import asyncio as _asyncio
+            sem = _asyncio.Semaphore(8)
+
+            async def _pf(sym):
+                async with sem:
+                    try:
+                        await self.fundamental.get_fundamentals(sym)
+                    except Exception:  # noqa: BLE001
+                        pass
+            await _asyncio.gather(*[_pf(s) for s in symbols])
+
         for sym in symbols:
             r = await self.analyze_stock(sym, mode, run_ai=False)
             setup = r.get("trade_setup") or {}
@@ -196,7 +210,7 @@ class Orchestrator:
             "mode": mode, "as_of": datetime.now(IST).isoformat(),
             "universe": "NIFTY 50", "count": len(rows),
             "ai_finalists": len(finalists),
-            "results": rows, "data_source": "mock", "from_cache": False,
+            "results": rows, "data_source": registry.data_source(), "from_cache": False,
             "provenance": {"strategy_version": V.STRATEGY_VERSIONS[mode],
                            "scoring_version": V.SCORING_VERSION},
         }

@@ -23,6 +23,7 @@ REDIS_URL = _env("REDIS_URL")
 
 # --- API credentials (environment only; never sent to the frontend) ---
 OPENAI_API_KEY = _env("OPENAI_API_KEY")
+GEMINI_API_KEY = _env("GEMINI_API_KEY")
 ZERODHA_API_KEY = _env("ZERODHA_API_KEY")
 ZERODHA_API_SECRET = _env("ZERODHA_API_SECRET")
 ZERODHA_ACCESS_TOKEN = _env("ZERODHA_ACCESS_TOKEN")
@@ -32,7 +33,9 @@ DATA_PROVIDER = _env("DATA_PROVIDER", "mock")
 FUNDAMENTAL_PROVIDER = _env("FUNDAMENTAL_PROVIDER", "mock")
 NEWS_PROVIDER = _env("NEWS_PROVIDER", "mock")
 AI_PROVIDER = _env("AI_PROVIDER", "mock")
+AI_FALLBACK_PROVIDER = _env("AI_FALLBACK_PROVIDER", "")
 AI_MODEL = _env("AI_MODEL", "mock-analyst-v1")
+GEMINI_MODEL = _env("GEMINI_MODEL", "gemini-3.1-flash-lite")
 AI_TEMPERATURE = float(_env("AI_TEMPERATURE", "0.1"))
 AI_MAX_TOKENS = int(_env("AI_MAX_TOKENS", "1200"))
 
