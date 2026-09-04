@@ -1,0 +1,65 @@
+# StockAI — full-stack local / single-VM (e.g. GCE) deployment.
+# For managed GCP (Cloud Run + Cloud SQL + Memorystore) see docs/DEPLOYMENT.md.
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: stockapp
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stockapp_pwd}
+      POSTGRES_DB: stockai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stockapp -d stockai"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://stockapp:${POSTGRES_PASSWORD:-stockapp_pwd}@postgres:5432/stockai
+      REDIS_URL: redis://redis:6379/0
+      DATA_PROVIDER: ${DATA_PROVIDER:-mock}
+      FUNDAMENTAL_PROVIDER: ${FUNDAMENTAL_PROVIDER:-mock}
+      NEWS_PROVIDER: ${NEWS_PROVIDER:-mock}
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_MODEL: ${AI_MODEL:-mock-analyst-v1}
+      CORS_ORIGINS: "*"
+      # --- Live keys (only needed when you switch providers off 'mock') ---
+      ZERODHA_API_KEY: ${ZERODHA_API_KEY:-}
+      ZERODHA_API_SECRET: ${ZERODHA_API_SECRET:-}
+      ZERODHA_ACCESS_TOKEN: ${ZERODHA_ACCESS_TOKEN:-}
+      FUNDAMENTAL_API_KEY: ${FUNDAMENTAL_API_KEY:-}
+      NEWS_API_KEY: ${NEWS_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PORT: "8001"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    ports:
+      - "8001:8001"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # For a VM/compose deploy point this at the backend's public URL.
+        REACT_APP_BACKEND_URL: ${REACT_APP_BACKEND_URL:-http://localhost:8001}
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
