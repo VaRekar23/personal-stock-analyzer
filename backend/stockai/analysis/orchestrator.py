@@ -125,7 +125,7 @@ class Orchestrator:
                 "model": getattr(registry.ai_provider(), "model", "mock"),
                 "market_data_version": mdv,
             },
-            "data_source": "mock",
+            "data_source": registry.data_source(),
             "from_cache": False,
         }
         await cache.set_json(cache_key, result, settings["cache"]["analysis_ttl_seconds"])
@@ -212,3 +212,9 @@ def get_orchestrator() -> Orchestrator:
     if _orchestrator is None:
         _orchestrator = Orchestrator()
     return _orchestrator
+
+
+def reset_orchestrator() -> None:
+    """Rebuild providers/engines (e.g. after a Kite login switches to live data)."""
+    global _orchestrator
+    _orchestrator = None

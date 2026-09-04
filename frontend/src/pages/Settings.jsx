@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Save, Lock } from "lucide-react";
+import { Save, Lock, Link2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Panel, PanelHeader, Spinner } from "@/components/common";
@@ -34,6 +34,71 @@ const Section = ({ title, section, values, fields, onSave, saving }) => {
   );
 };
 
+const KiteConnect = () => {
+  const qc = useQueryClient();
+  const [token, setToken] = useState("");
+  const { data: st, isLoading } = useQuery({ queryKey: ["kite-status"], queryFn: api.kiteStatus, refetchInterval: 15000 });
+  const connect = useMutation({
+    mutationFn: (t) => api.kiteConnect(t),
+    onSuccess: () => { toast.success("Zerodha Kite connected — live market data enabled"); setToken(""); qc.invalidateQueries(); },
+    onError: (e) => toast.error(e?.response?.data?.detail || "Kite connection failed"),
+  });
+  const logout = useMutation({
+    mutationFn: api.kiteLogout,
+    onSuccess: () => { toast.success("Disconnected — back to demo data"); qc.invalidateQueries(); },
+  });
+  const openLogin = async () => {
+    try { const r = await api.kiteLoginUrl(); window.open(r.login_url, "_blank", "noopener"); }
+    catch (e) { toast.error("Login URL unavailable — check ZERODHA_API_KEY"); }
+  };
+  const connected = st?.connected;
+
+  return (
+    <Panel testid="settings-kite" className="lg:col-span-2">
+      <PanelHeader title="Broker Connection · Zerodha Kite" right={
+        <span className={`flex items-center gap-1.5 text-[11px] font-mono ${connected ? "text-bull" : "text-slate-500"}`}>
+          {connected ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+          {connected ? "LIVE / CONNECTED" : "NOT CONNECTED · DEMO DATA"}
+        </span>} />
+      {isLoading ? <Spinner /> : (
+        <div className="p-4 space-y-4">
+          <p className="text-xs text-slate-400 leading-relaxed">
+            Kite access tokens expire daily (~06:00 IST), so a fresh login is required each trading day.
+            Your API key/secret stay server-side. Step 1: open the Kite login. Step 2: after logging in,
+            copy the <code className="text-cyan">request_token</code> from the redirected URL and paste it below.
+          </p>
+          <div className="flex flex-wrap items-center gap-2">
+            <button data-testid="kite-login-btn" onClick={openLogin}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-mono rounded bg-cyan/10 text-cyan border border-cyan/30 hover:bg-cyan/20">
+              <ExternalLink size={13} /> Open Zerodha Login
+            </button>
+            {connected && (
+              <button data-testid="kite-logout-btn" onClick={() => logout.mutate()}
+                className="px-3 py-2 text-xs font-mono rounded bg-bear/10 text-bear border border-bear/30 hover:bg-bear/20">
+                Disconnect
+              </button>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <input data-testid="kite-token-input" value={token} onChange={(e) => setToken(e.target.value)}
+              placeholder="Paste request_token here"
+              className="flex-1 bg-surface px-3 py-2 text-sm font-mono text-slate-100 rounded border border-surface-2 focus:border-cyan focus:outline-none" />
+            <button data-testid="kite-connect-btn" onClick={() => token.trim() && connect.mutate(token.trim())}
+              disabled={!token.trim() || connect.isPending}
+              className="flex items-center gap-1.5 px-4 py-2 text-xs font-mono rounded bg-bull/15 text-bull border border-bull/30 hover:bg-bull/25 disabled:opacity-40">
+              <Link2 size={13} /> {connect.isPending ? "Connecting…" : "Connect"}
+            </button>
+          </div>
+          <div className="text-[11px] font-mono text-slate-500">
+            API key configured: {st?.api_key_present ? "yes" : "no"}
+            {st?.login_time && ` · last login ${st.login_time}`}
+          </div>
+        </div>
+      )}
+    </Panel>
+  );
+};
+
 export default function SettingsPage() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ["settings"], queryFn: api.settings });
@@ -54,6 +119,7 @@ export default function SettingsPage() {
 
       {isLoading ? <Spinner /> : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <KiteConnect />
           <Section title="Risk Engine" section="risk" values={s.risk} onSave={onSave} saving={save.isPending}
             fields={[
               { key: "account_capital", label: "Account Capital (₹)", step: "10000" },

@@ -47,6 +47,10 @@ async def _seed_index_membership():
 async def startup():
     await db.connect()
     await cache.connect()
+    from stockai.providers.zerodha import session as kite_session
+    await kite_session.load_from_db()
+    from stockai.analysis.orchestrator import reset_orchestrator
+    reset_orchestrator()  # pick up live providers if a Kite session was restored
     orch = get_orchestrator()
     try:
         await orch.warehouse.sync_instruments()

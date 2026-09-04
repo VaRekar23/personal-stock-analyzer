@@ -51,8 +51,21 @@ class AIService:
 
         prompt = build_prompt(analysis_type, symbol)
         ctx = {**context, "prompt_version": prompt_version, "symbol": symbol}
-        raw = await self.provider.generate(prompt, ctx, AIAnalysis.json_schema())
-        validated = AIAnalysis(**raw).model_dump()  # schema enforcement
+        try:
+            raw = await self.provider.generate(prompt, ctx, AIAnalysis.json_schema())
+            validated = AIAnalysis(**raw).model_dump()  # schema enforcement
+        except Exception as e:  # noqa: BLE001 — AI failure must not break analysis
+            score = context.get("score") or {}
+            det_bias = (score.get("bias") or "").lower()
+            return AIAnalysis(
+                bias={"bullish": "LONG", "bearish": "SHORT"}.get(det_bias, "NEUTRAL"),
+                confidence=float(score.get("confidence") or 0.0),
+                summary="AI explanation unavailable — deterministic analysis stands.",
+                provider=provider_name, model=model, prompt_version=prompt_version,
+                grounded=True, error=f"{type(e).__name__}: {e}",
+                missing_data_warnings=[
+                    "AI provider error; deterministic values remain authoritative."],
+            ).model_dump(), False
 
         await cache.set_json(key, validated, DEFAULT_SETTINGS["cache"]["ai_ttl_seconds"])
         await db.execute(

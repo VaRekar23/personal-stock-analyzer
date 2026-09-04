@@ -21,12 +21,20 @@ def _env(key: str, default: str | None = None) -> str | None:
 DATABASE_URL = _env("DATABASE_URL")
 REDIS_URL = _env("REDIS_URL")
 
+# --- API credentials (environment only; never sent to the frontend) ---
+OPENAI_API_KEY = _env("OPENAI_API_KEY")
+ZERODHA_API_KEY = _env("ZERODHA_API_KEY")
+ZERODHA_API_SECRET = _env("ZERODHA_API_SECRET")
+ZERODHA_ACCESS_TOKEN = _env("ZERODHA_ACCESS_TOKEN")
+
 # --- Provider selection ---
 DATA_PROVIDER = _env("DATA_PROVIDER", "mock")
 FUNDAMENTAL_PROVIDER = _env("FUNDAMENTAL_PROVIDER", "mock")
 NEWS_PROVIDER = _env("NEWS_PROVIDER", "mock")
 AI_PROVIDER = _env("AI_PROVIDER", "mock")
 AI_MODEL = _env("AI_MODEL", "mock-analyst-v1")
+AI_TEMPERATURE = float(_env("AI_TEMPERATURE", "0.1"))
+AI_MAX_TOKENS = int(_env("AI_MAX_TOKENS", "1200"))
 
 # A provider is "live" only when its credentials/config are verified. All mock.
 LIVE_PROVIDERS: dict[str, bool] = {

@@ -10,9 +10,11 @@ from pydantic import BaseModel
 
 from .core import db, cache
 from .core import versions as V
+from .core.config import ZERODHA_API_KEY, ZERODHA_API_SECRET
 from .providers import registry
 from .providers.mock.market import market_status
-from .analysis.orchestrator import get_orchestrator
+from .providers.zerodha import session as kite_session
+from .analysis.orchestrator import get_orchestrator, reset_orchestrator
 from .analysis.portfolio import analyze_portfolio
 from .evals.datasets import run_evals
 from .settings_store import get_settings, update_settings
@@ -230,3 +232,58 @@ async def settings_update(section: str, body: SettingsUpdate):
     await cache.delete("analysis:")
     await cache.delete("scanner:")
     return {"settings": s, "updated": section}
+
+
+
+# ---------------- Zerodha / Kite Connect (server-side login) ----------------
+@api_router.get("/kite/status")
+async def kite_status():
+    s = kite_session.status()
+    return {"configured": bool(ZERODHA_API_KEY and ZERODHA_API_SECRET),
+            "api_key_present": bool(ZERODHA_API_KEY),
+            "live": registry.data_source() == "zerodha", **s,
+            "note": "Kite access tokens expire daily (~06:00 IST); re-login each day."}
+
+
+@api_router.get("/kite/login-url")
+async def kite_login_url():
+    if not ZERODHA_API_KEY:
+        raise HTTPException(400, "ZERODHA_API_KEY not configured")
+    url = f"https://kite.zerodha.com/connect/login?v=3&api_key={ZERODHA_API_KEY}"
+    return {"login_url": url,
+            "instructions": "Open this URL, log in to Zerodha, then copy the "
+                            "'request_token' from the redirected URL and submit it below."}
+
+
+class KiteSession(BaseModel):
+    request_token: str
+
+
+@api_router.post("/kite/session")
+async def kite_create_session(body: KiteSession):
+    if not (ZERODHA_API_KEY and ZERODHA_API_SECRET):
+        raise HTTPException(400, "Zerodha API key/secret not configured")
+    try:
+        from kiteconnect import KiteConnect
+        import asyncio
+        kite = KiteConnect(api_key=ZERODHA_API_KEY)
+        data = await asyncio.to_thread(
+            kite.generate_session, body.request_token.strip(),
+            api_secret=ZERODHA_API_SECRET)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(400, f"Kite session exchange failed: {e}")
+    await kite_session.persist(data["access_token"], str(data.get("login_time")))
+    reset_orchestrator()  # switch to live market/portfolio providers
+    await cache.delete("analysis:")
+    await cache.delete("scanner:")
+    return {"connected": True, "live": registry.data_source() == "zerodha",
+            "login_time": str(data.get("login_time"))}
+
+
+@api_router.post("/kite/logout")
+async def kite_logout():
+    await kite_session.clear()
+    reset_orchestrator()
+    await cache.delete("analysis:")
+    await cache.delete("scanner:")
+    return {"connected": False}

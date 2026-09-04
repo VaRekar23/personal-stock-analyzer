@@ -75,7 +75,7 @@ async def analyze_portfolio() -> dict:
     total_pnl = total_current - total_invested
     return {
         "as_of": datetime.now(IST).isoformat(),
-        "data_source": "mock",
+        "data_source": registry.data_source(),
         "summary": {
             "holdings_count": len(enriched),
             "invested": round(total_invested, 2),

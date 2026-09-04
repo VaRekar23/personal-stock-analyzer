@@ -24,4 +24,9 @@ export const api = {
   settings: () => client.get("/settings").then((r) => r.data),
   updateSettings: (section, values) =>
     client.put(`/settings/${section}`, { values }).then((r) => r.data),
+  kiteStatus: () => client.get("/kite/status").then((r) => r.data),
+  kiteLoginUrl: () => client.get("/kite/login-url").then((r) => r.data),
+  kiteConnect: (request_token) =>
+    client.post("/kite/session", { request_token }).then((r) => r.data),
+  kiteLogout: () => client.post("/kite/logout").then((r) => r.data),
 };

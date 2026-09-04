@@ -29,3 +29,5 @@ emergentintegrations==0.2.0
 asyncpg==0.29.0
 redis==5.0.8
 pyyaml==6.0.2
+openai==1.99.9
+kiteconnect==5.0.1

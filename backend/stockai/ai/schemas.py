@@ -24,6 +24,7 @@ class AIAnalysis(BaseModel):
     model: str = "mock-analyst-v1"
     prompt_version: str = ""
     grounded: bool = True
+    error: str | None = None
 
     @staticmethod
     def json_schema() -> dict:
