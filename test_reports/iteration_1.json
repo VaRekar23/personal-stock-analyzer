@@ -1,0 +1,19 @@
+{
+  "summary": "Comprehensive backend + frontend testing of Personal AI Stock Analysis Platform V1. 20/20 backend API tests pass (health, market overview, analyze x3 modes, invalid symbol/mode, cache, scanner x3 modes with cache, portfolio, fundamentals, news, candles, evals run+latest, settings GET/PUT). All frontend pages render correctly with data-testid selectors: Dashboard, Scanner (50 rows), Portfolio (10 rows), Data Health (7 service pills), Settings, Evals (9 cases 100% pass, synthetic hallucinations detected), Stock Analysis with all 8 tabs and deterministic trade setup, mode-locked scanners. DEMO/MOCK DATA badge visible globally. No console errors. Trade setup LONG invariant stop<entry<t1<t2 verified.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": ["/app/backend/tests/test_api.py", "/app/test_reports/pytest/api_results.xml"],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Response shape for /api/analyze nests score fields under 'score' object (score, confidence, factors) - documented for future testers.",
+    "Settings endpoint wraps content under 'settings' key at top level - noted for API consumers.",
+    "News endpoint returns items[] each with source='mock' rather than top-level source field - consistent with typical list APIs."
+  ],
+  "updated_files": ["/app/backend/tests/test_api.py"],
+  "success_rate": {"backend": "100% (20/20)", "frontend": "100% (all pages + all 8 analysis tabs render)"},
+  "seed_data_creation": "None; app uses deterministic mock providers.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend regression suite at /app/backend/tests/test_api.py covers all 15 API surface areas. Response shapes: analyze -> {score:{score,confidence,factors,bias}, trade_setup, ai, fundamentals:{income_statement,valuation,cash_flow,shareholding}, provenance}. Scanner returns {results:[...50], ai_finalists, from_cache}. Settings wrapped as {settings:{risk,cache,thresholds,providers}, versions, note}. News -> {items:[{source:'mock',...}]}. All 8 analysis tabs use data-testid tab-{overview|technical|fundamental|market-sector|trade-setup|ai-analysis|evaluation|historical-data}. Portfolio holdings show 10 with health labels.",
+  "rca of the issue": "N/A - no bugs found."
+}

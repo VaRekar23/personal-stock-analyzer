@@ -1,0 +1,37 @@
+long_term:
+  # Weights within each group sum to 1.0; groups combined by group_weights below.
+  group_weights:
+    fundamentals: 0.30
+    growth: 0.15
+    profitability: 0.15
+    valuation: 0.10
+    balance_sheet: 0.10
+    cash_flow: 0.05
+    technical_trend: 0.10
+    sector_strength: 0.03
+    market_context: 0.02
+  notes: "Fundamentals-heavy. See docs/SCORING_AND_RISK.md."
+
+swing:
+  factor_weights:
+    market_trend: 0.15
+    sector_trend: 0.12
+    price_structure: 0.18
+    momentum: 0.15
+    volume: 0.12
+    support_resistance: 0.10
+    volatility: 0.08
+    relative_strength: 0.10
+  notes: "Short-term price-action driven."
+
+intraday:
+  factor_weights:
+    nifty_direction: 0.18
+    sector_direction: 0.12
+    vwap_position: 0.18
+    ema_alignment: 0.12
+    momentum: 0.15
+    relative_volume: 0.13
+    opening_range: 0.07
+    relative_strength: 0.05
+  notes: "Separate from swing. Uses intraday features only."

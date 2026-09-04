@@ -1,0 +1,126 @@
+{
+  "project_title": "Personal AI-Powered Indian Stock Analysis & Portfolio Intelligence Platform",
+  "app_type": "Data-Dense Quantitative Trading & Financial Research Terminal",
+  "archetype": "The Performance Pro / Bloomberg Terminal Noir",
+  "theme": "dark",
+  "design_principles": {
+    "1_institutional_density": "Prioritize high-density data presentation over wide consumer whitespace. Use compact grids, micro-type (11-13px) for data tables, and structured pane layouts.",
+    "2_tactical_minimalism": "Replace soft drop shadows with crisp 1px borders (`border-slate-800`), dark elevated surfaces, and glowing state indicators.",
+    "3_semantic_financial_clarity": "Strict color discipline: Emerald Green (#10B981) for Bullish/Profit, Crimson Red (#EF4444) for Bearish/Loss, Amber Gold (#F59E0B) for Watch/Warning, Electric Cyan (#38BDF8) for active selection/interactivity.",
+    "4_clear_provenance_and_freshness": "Prominently display Data Health status, Last Ingestion Timestamps, and STALE DATA / MOCK-DEMO DATA badges on all headers and analytical cards.",
+    "5_deterministic_vs_ai_separation": "Visually distinguish hard mathematical metrics (deterministic indicators, scores, price targets) from generative AI explanations using distinct card borders and AI badge tags."
+  },
+  "colors": {
+    "background_page": "#090D16",
+    "background_surface_1": "#0F172A",
+    "background_surface_2": "#1E293B",
+    "background_surface_hover": "#334155",
+    "border_subtle": "#1E293B",
+    "border_active": "#38BDF8",
+    "text_primary": "#F8FAFC",
+    "text_secondary": "#94A3B8",
+    "text_muted": "#64748B",
+    "financial_bullish": "#10B981",
+    "financial_bullish_bg": "rgba(16, 185, 129, 0.12)",
+    "financial_bearish": "#EF4444",
+    "financial_bearish_bg": "rgba(239, 68, 68, 0.12)",
+    "financial_watch": "#F59E0B",
+    "financial_watch_bg": "rgba(245, 158, 11, 0.12)",
+    "interactive_cyan": "#38BDF8",
+    "interactive_cyan_bg": "rgba(56, 189, 248, 0.12)",
+    "ai_purple": "#A855F7",
+    "ai_purple_bg": "rgba(168, 85, 247, 0.12)"
+  },
+  "typography": {
+    "font_family_heading": "Outfit, system-ui, sans-serif",
+    "font_family_body": "Inter, system-ui, sans-serif",
+    "font_family_mono": "'JetBrains Mono', 'Roboto Mono', monospace",
+    "headline_sizes": {
+      "h1_page_title": "text-2xl font-bold tracking-tight text-slate-100",
+      "h2_section_header": "text-lg font-semibold tracking-tight text-slate-200",
+      "h3_card_header": "text-sm font-semibold uppercase tracking-wider text-slate-400"
+    },
+    "body_sizes": {
+      "default": "text-sm text-slate-300 leading-normal",
+      "compact_table": "text-xs font-mono text-slate-200",
+      "metric_value": "text-xl font-mono font-bold text-slate-100",
+      "badge": "text-[11px] font-mono font-medium tracking-wide uppercase px-2 py-0.5 rounded"
+    }
+  },
+  "layout_and_navigation": {
+    "sidebar": {
+      "width": "w-64",
+      "background": "#0B1120",
+      "border": "border-r border-slate-800",
+      "nav_items": [
+        { "label": "Dashboard", "icon": "LayoutDashboard", "path": "/", "testid": "nav-dashboard" },
+        { "label": "Portfolio", "icon": "Briefcase", "path": "/portfolio", "testid": "nav-portfolio" },
+        { "label": "Stock Analysis", "icon": "LineChart", "path": "/stock-analysis", "testid": "nav-stock-analysis" },
+        { "label": "NIFTY 50 Scanner", "icon": "Search", "path": "/scanner", "testid": "nav-scanner" },
+        { "label": "Long Term", "icon": "TrendingUp", "path": "/mode-longterm", "testid": "nav-long-term" },
+        { "label": "Swing Trading", "icon": "Zap", "path": "/mode-swing", "testid": "nav-swing" },
+        { "label": "Intraday", "icon": "Clock", "path": "/mode-intraday", "testid": "nav-intraday" },
+        { "label": "EVALS Engine", "icon": "CheckCircle2", "path": "/evals", "testid": "nav-evals" },
+        { "label": "Data Health", "icon": "Activity", "path": "/data-health", "testid": "nav-data-health" },
+        { "label": "Settings", "icon": "Settings", "path": "/settings", "testid": "nav-settings" }
+      ]
+    },
+    "header_ticker_bar": {
+      "height": "h-12",
+      "features": [
+        "Live NIFTY 50 and BANKNIFTY index tickers with % change",
+        "Market Status Badge (OPEN / CLOSED / PRE-MARKET)",
+        "Global Symbol Search with auto-suggest dropdown",
+        "DEMO / MOCK DATA warning banner badge",
+        "Data Freshness Timestamp (e.g. 'Last updated: 10:15:30 IST')"
+      ]
+    },
+    "bento_grid_structure": "Dense grid layout using `grid-cols-12 gap-4`. Avoid empty gaps; maximize information per square inch while keeping 1px dark borders for crisp separation."
+  },
+  "key_components": {
+    "market_overview_widgets": {
+      "elements": ["NIFTY 50 Index Chart", "BANKNIFTY Index Chart", "Market Breadth Bar (Advances vs Declines)", "Sector Performance Heatmap Grid"]
+    },
+    "portfolio_table": {
+      "columns": ["Symbol", "Sector", "Qty", "Avg Price (₹)", "LTP (₹)", "Invested (₹)", "Current Value (₹)", "P&L (₹)", "P&L %", "Health Status"],
+      "status_chips": {
+        "Healthy": "bg-emerald-500/10 text-emerald-400 border border-emerald-500/30",
+        "Watch": "bg-amber-500/10 text-amber-400 border border-amber-500/30",
+        "Review": "bg-rose-500/10 text-rose-400 border border-rose-500/30"
+      }
+    },
+    "stock_analysis_tabs": {
+      "tabs": ["Overview", "Technical Analysis", "Fundamental Analysis", "Market & Sector Context", "Trade Setup", "AI Explanation Layer", "Evaluation Matrix", "Historical Data"],
+      "interactive_charts": "Recharts or Canvas candlestick charts with EMA 20/50/200, VWAP, Supertrend, Bollinger Bands, and RSI/MACD sub-panes."
+    },
+    "trade_setup_card": {
+      "fields": ["Directional Bias (Bullish / Bearish / Neutral)", "Entry Zone", "Ideal Entry Price", "Stop Loss", "Target 1", "Target 2", "Risk / Reward Ratio", "Confidence Score (0-100%) Gauge", "Supporting Quantitative Evidence", "Risk Factors", "Invalidation Conditions"],
+      "styling": "Dark elevated panel with highlighted Entry/Target/Stop Loss badges and progress gauge."
+    },
+    "nifty_50_scanner_table": {
+      "columns": ["Rank", "Symbol", "LTP (₹)", "Quant Score (0-100)", "Confidence", "Bias", "Trend", "Momentum", "Volume Spike", "Sector", "Quick Action"],
+      "features": ["Sortable by all columns", "Filter by Sector and Bias", "Search filter by stock ticker", "Score bar visualizer"]
+    },
+    "evals_dashboard": {
+      "sections": ["Evaluation Datasets", "TestCase Matrix", "Pass / Fail Ratio", "Quantitative Precision Score", "AI Hallucination Risk Score", "Prompt & Model Versioning"]
+    },
+    "data_health_page": {
+      "status_cards": ["Zerodha / Kite Data Stream", "NSE Market Feed", "Database (PostgreSQL/SQLite)", "Cache Layer (Redis)", "Fundamental Data Ingestion", "AI Model Provider"],
+      "indicators": "Pill statuses (OPERATIONAL / DEGRADED / DEMO-MOCK), Ingestion latency ms, and Last sync timestamps."
+    }
+  },
+  "image_urls": {
+    "chart_background": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "stock_market_overview": "https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?crop=entropy&cs=srgb&fm=jpg&q=85",
+    "financial_data_terminal": "https://images.unsplash.com/photo-1651341050677-24dba59ce0fd?crop=entropy&cs=srgb&fm=jpg&q=85"
+  },
+  "data_testid_convention": "All interactive elements, buttons, tabs, input fields, filter options, and key informational metrics MUST include `data-testid` attributes formatted in kebab-case (e.g. `data-testid=\"stock-search-input\"`, `data-testid=\"trade-setup-bias-badge\"`).",
+  "instructions_to_main_agent": [
+    "Build a complete, responsive dark-mode quantitative stock analysis platform tailored for Indian Equities (NSE/NIFTY 50).",
+    "Follow the compact institutional Bloomberg/TradingView terminal style using dark background `#090D16`, elevated panels `#0F172A`, 1px borders `#1E293B`, and `font-mono` for all numerical data.",
+    "Ensure all 10 main pages/views listed in the sidebar (Dashboard, Portfolio, Stock Analysis, NIFTY 50 Scanner, Long Term, Swing, Intraday, EVALS, Data Health, Settings) are fully accessible, highly functional, and populated with rich mock Indian stock market data (e.g., RELIANCE, TCS, HDFCBANK, INFYS, ICICIBANK, TATASTEEL, LT, etc.).",
+    "Always render prominent badges for 'DEMO/MOCK DATA' and 'STALE DATA' alerts to emphasize data provenance as required by the spec.",
+    "Include every required feature from the key functionalities specification including Candlestick/line charts with indicator overlays (EMA, VWAP, RSI, MACD), Trade Setup card with entry/stop-loss/targets/invalidation, sortable NIFTY 50 scanner table, EVALS suite, and Data Health observability status.",
+    "Attach `data-testid` to all primary buttons, tab triggers, search bars, table headers, and status chips."
+  ]
+}

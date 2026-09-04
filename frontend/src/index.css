@@ -1,0 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 199 92% 60%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 215 28% 15%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 215 28% 14%;
+    --muted-foreground: 215 20% 62%;
+    --accent: 215 28% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 215 28% 16%;
+    --input: 215 28% 16%;
+    --ring: 199 92% 60%;
+    --radius: 0.4rem;
+}
+
+* {
+    border-color: hsl(var(--border));
+}
+
+body {
+    margin: 0;
+    background-color: #090D16;
+    color: hsl(var(--foreground));
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "tnum";
+}
+
+.font-display { font-family: 'Outfit', system-ui, sans-serif; }
+.font-mono, .tabular { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0B1120; }
+::-webkit-scrollbar-thumb { background: #1E293B; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
+
+.terminal-grid-bg {
+    background-image:
+        linear-gradient(rgba(56,189,248,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+}
+
+.panel {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: var(--radius);
+}
+.panel-hover:hover { border-color: #334155; }
+
+.glow-cyan { box-shadow: 0 0 0 1px rgba(56,189,248,0.4), 0 0 20px rgba(56,189,248,0.08); }
+
+@keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up { animation: fadeUp 0.4s ease-out both; }
+
+@keyframes pulseDot { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+.pulse-dot { animation: pulseDot 1.8s ease-in-out infinite; }
+
+.num-pos { color: #10B981; }
+.num-neg { color: #EF4444; }
+.num-flat { color: #94A3B8; }
