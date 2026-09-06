@@ -1,0 +1,21 @@
+# Cloud Build config for the StockAI frontend.
+# REACT_APP_BACKEND_URL must be baked in at BUILD time (Create React App),
+# so we pass it as a Docker --build-arg here (gcloud builds submit --tag cannot).
+#
+# Usage (run from the repo root):
+#   gcloud builds submit frontend \
+#     --config=frontend/cloudbuild.yaml \
+#     --substitutions=_BACKEND_URL=https://YOUR-BACKEND.run.app,_IMAGE=asia-south1-docker.pkg.dev/PROJECT/stockai/frontend:latest
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg
+      - REACT_APP_BACKEND_URL=${_BACKEND_URL}
+      - -t
+      - ${_IMAGE}
+      - .
+images:
+  - ${_IMAGE}
+options:
+  logging: CLOUD_LOGGING_ONLY

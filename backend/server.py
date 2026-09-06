@@ -68,10 +68,17 @@ async def shutdown():
 
 
 app.include_router(api_router)
+
+# CORS: sanitize the env so a mis-set/garbled value can't silently block the
+# frontend. Empty or containing "*" -> wildcard (origins reflected).
+_cors_raw = os.environ.get("CORS_ORIGINS", "*")
+_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip().startswith("http") or o.strip() == "*"]
+if not _cors_origins or "*" in _cors_origins:
+    _cors_origins = ["*"]
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get("CORS_ORIGINS", "*").split(","),
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
