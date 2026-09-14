@@ -2,6 +2,22 @@
 
 All notable architectural changes. Keep in sync with implementation & version bumps.
 
+## [1.2.1] — 2026-09-14 — Deployment fixes (CORS, truthful health, dynamic badge)
+### Fixed
+- **CORS (hard blocker):** `server.py` CORS is now bulletproof. Default = allow-all origins with
+  a literal `Access-Control-Allow-Origin: *` and `allow_credentials=False` (CORS-spec-compliant,
+  works for all non-credentialed requests — the app uses no cookie auth). `CORS_ORIGINS` is now an
+  *optional* restriction (valid http origins only); unset/"*"/garbled all safely fall back to
+  allow-all. This fixes the Cloud Run "No Access-Control-Allow-Origin header" / "Disallowed CORS
+  origin" error that blocked the frontend from calling the backend.
+- **Health endpoint** no longer hardcodes provider labels ("TrueData adapter pending verification"
+  etc.). It now reports real state via `registry.provider_modes()` and exposes top-level
+  `data_source` and `live: {market, fundamental, news, ai}` booleans.
+- **`/` root endpoint** `data_mode` replaced with dynamic `data_source`.
+- **UI data-source badge** (`MockBadge`) is now dynamic: reads `/api/health` and shows
+  "Live Market Data" / "Partial Live Data" / "Demo / Mock Data" with a per-provider tooltip,
+  instead of a hardcoded "Demo / Mock Data".
+
 ## [1.2.0] — 2026-09-04 — Gemini fallback AI + Yahoo Finance fundamentals/news
 ### Added
 - **GeminiProvider** (`ai/gemini_provider.py`) via `google-genai` async client, behind the

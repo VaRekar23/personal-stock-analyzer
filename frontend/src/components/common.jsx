@@ -1,5 +1,7 @@
 import React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { biasColor } from "@/lib/format";
+import { api } from "@/lib/api";
 
 export const Panel = ({ children, className = "", testid, ...rest }) => (
   <div data-testid={testid} className={`panel ${className}`} {...rest}>
@@ -17,14 +19,51 @@ export const PanelHeader = ({ title, right, icon: Icon }) => (
   </div>
 );
 
-export const MockBadge = ({ className = "" }) => (
-  <span
-    data-testid="mock-data-badge"
-    className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase tracking-wide px-2 py-0.5 rounded border border-watch/40 bg-watch/10 text-watch ${className}`}
-  >
-    <span className="w-1.5 h-1.5 rounded-full bg-watch pulse-dot" /> Demo / Mock Data
-  </span>
-);
+// Dynamic data-source badge: reflects whether live providers are actually
+// active (from /api/health), not a hardcoded label. Shows the live mock/live
+// breakdown for market, fundamentals, news and AI.
+export const MockBadge = ({ className = "" }) => {
+  const { data } = useQuery({
+    queryKey: ["health"],
+    queryFn: api.health,
+    refetchInterval: 30000,
+    retry: 1,
+  });
+  const live = data?.live;
+  const anyLive = live && (live.market || live.fundamental || live.news || live.ai);
+  const marketLive = !!live?.market;
+
+  const label = !data
+    ? "Connecting…"
+    : marketLive
+    ? "Live Market Data"
+    : anyLive
+    ? "Partial Live Data"
+    : "Demo / Mock Data";
+
+  const tone = marketLive
+    ? "border-bull/40 bg-bull/10 text-bull"
+    : anyLive
+    ? "border-cyan/40 bg-cyan/10 text-cyan"
+    : "border-watch/40 bg-watch/10 text-watch";
+  const dot = marketLive ? "bg-bull" : anyLive ? "bg-cyan" : "bg-watch";
+
+  const liveList = live
+    ? ["market", "fundamental", "news", "ai"]
+        .map((k) => `${k}:${live[k] ? "live" : "mock"}`)
+        .join(" · ")
+    : "";
+
+  return (
+    <span
+      data-testid="mock-data-badge"
+      title={liveList || "Provider status unavailable"}
+      className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase tracking-wide px-2 py-0.5 rounded border ${tone} ${className}`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${dot} pulse-dot`} /> {label}
+    </span>
+  );
+};
 
 export const StaleBadge = ({ className = "" }) => (
   <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-semibold uppercase px-2 py-0.5 rounded border border-bear/40 bg-bear/10 text-bear ${className}`}>

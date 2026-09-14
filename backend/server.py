@@ -69,16 +69,19 @@ async def shutdown():
 
 app.include_router(api_router)
 
-# CORS: sanitize the env so a mis-set/garbled value can't silently block the
-# frontend. Empty or containing "*" -> wildcard (origins reflected).
-_cors_raw = os.environ.get("CORS_ORIGINS", "*")
-_cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip().startswith("http") or o.strip() == "*"]
-if not _cors_origins or "*" in _cors_origins:
-    _cors_origins = ["*"]
+# CORS — bulletproof default for this personal single-user app (no cookie auth).
+# If CORS_ORIGINS is set to a valid http(s) origin list -> restrict to those.
+# Otherwise (unset / "*" / garbled) -> allow ALL origins with a literal "*"
+# (allow_credentials=False so "*" is CORS-spec-compliant and always works).
+_cors_raw = os.environ.get("CORS_ORIGINS", "").strip()
+_cors_list = [o.strip().rstrip("/") for o in _cors_raw.split(",") if o.strip().startswith("http")]
+if _cors_list:
+    _cors_kwargs = {"allow_origins": _cors_list, "allow_credentials": True}
+else:
+    _cors_kwargs = {"allow_origins": ["*"], "allow_credentials": False}
 app.add_middleware(
     CORSMiddleware,
-    allow_credentials=True,
-    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
+    **_cors_kwargs,
 )

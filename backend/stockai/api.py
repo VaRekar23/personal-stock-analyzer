@@ -29,7 +29,7 @@ VALID_MODES = {"long_term", "swing", "intraday"}
 @api_router.get("/")
 async def root():
     return {"app": "StockAI", "version": V.SCORING_VERSION, "status": "ok",
-            "data_mode": "DEMO / MOCK DATA"}
+            "data_source": registry.data_source()}
 
 
 # ---------------- Health / Data Health ----------------
@@ -54,19 +54,29 @@ async def health():
 
     return {
         "as_of": datetime.now(IST).isoformat(),
+        # Clean top-level signals the frontend badge/UI consume directly.
+        "data_source": modes["data"]["mode"],
+        "live": {
+            "market": modes["data"]["live"],
+            "fundamental": modes["fundamental"]["live"],
+            "news": modes["news"]["live"],
+            "ai": modes["ai"]["live"],
+        },
         "services": {
             "database": {"status": db_h["status"].upper(), "detail": db_h["detail"],
                          "engine": "PostgreSQL 15 (Timescale-ready)"},
             "cache": {"status": redis_h["status"].upper(), "detail": redis_h["detail"],
                       "stats": cache.stats()},
             "zerodha": {"status": prov_status(modes["data"]),
-                        "detail": "Adapter pending credential verification"},
+                        "detail": ("Zerodha Kite live" if modes["data"]["live"]
+                                   else "Mock — connect via Settings → Broker Connection")},
             "fundamental": {"status": prov_status(modes["fundamental"]),
-                            "detail": "TrueData adapter pending verification"},
+                            "detail": f"provider={modes['fundamental']['mode']}"},
             "news": {"status": prov_status(modes["news"]),
-                     "detail": "News adapter pending verification"},
+                     "detail": f"provider={modes['news']['mode']}"},
             "ai": {"status": prov_status(modes["ai"]),
-                   "detail": f"Provider={modes['ai']['selected']}"},
+                   "detail": f"Provider={modes['ai']['selected']} model={modes['ai'].get('model','')}"
+                             + (f" fallback={modes['ai'].get('fallback')}" if modes['ai'].get('fallback') else "")},
             "knowledge_rag": {"status": "PENDING-V2", "detail": "RAG seam only in V1"},
         },
         "last_ingestion": last_ingest,
