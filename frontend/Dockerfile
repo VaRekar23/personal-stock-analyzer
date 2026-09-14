@@ -6,8 +6,15 @@ WORKDIR /app/frontend
 ARG REACT_APP_BACKEND_URL
 ENV REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL}
 
-COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+# yarn.lock is optional (the '*' glob won't fail if it's absent from the
+# build context). Prefer a frozen install when the lockfile is present for
+# reproducible builds; fall back to a plain install otherwise.
+COPY package.json yarn.lock* ./
+RUN if [ -f yarn.lock ]; then \
+      yarn install --frozen-lockfile --network-timeout 600000; \
+    else \
+      yarn install --network-timeout 600000; \
+    fi
 COPY . .
 RUN yarn build
 
