@@ -168,6 +168,20 @@ export const Spinner = ({ label = "Loading…" }) => (
   </div>
 );
 
+export const ErrorState = ({ title = "Couldn't load data", hint, error }) => (
+  <div data-testid="error-state" className="text-center py-16">
+    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded border border-bear/40 bg-bear/10 text-bear text-xs font-mono font-semibold uppercase tracking-wide">
+      {title}
+    </div>
+    {hint && <div className="text-slate-500 text-sm mt-3 max-w-md mx-auto">{hint}</div>}
+    {error && (
+      <div className="text-slate-600 text-[11px] font-mono mt-2 max-w-lg mx-auto break-words">
+        {String(error?.response?.data?.detail || error?.message || error)}
+      </div>
+    )}
+  </div>
+);
+
 export const EmptyState = ({ title, hint }) => (
   <div className="text-center py-16">
     <div className="text-slate-300 font-display text-lg">{title}</div>

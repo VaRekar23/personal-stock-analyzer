@@ -99,7 +99,7 @@ async def market_overview():
         "as_of": datetime.now(IST).isoformat(),
         "market_status": market_status(),
         "context": ctx, "sectors": sectors,
-        "data_source": "mock",
+        "data_source": registry.data_source(),
     }
 
 
@@ -123,7 +123,7 @@ async def candles(symbol: str, interval: str = "1d", count: int = Query(200, le=
         raise HTTPException(404, f"No candle data for {symbol}")
     return {"symbol": symbol.upper(), "interval": interval,
             "market_data_version": orch.warehouse.market_data_version(data),
-            "candles": data, "data_source": "mock"}
+            "candles": data, "data_source": registry.data_source()}
 
 
 # ---------------- Analysis ----------------

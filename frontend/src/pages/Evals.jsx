@@ -2,12 +2,12 @@ import React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Play, CheckCircle2, XCircle } from "lucide-react";
 import { api } from "@/lib/api";
-import { Panel, PanelHeader, Spinner, Metric } from "@/components/common";
+import { Panel, PanelHeader, Spinner, Metric, ErrorState } from "@/components/common";
 import { dateIST, timeIST } from "@/lib/format";
 
 export default function Evals() {
   const qc = useQueryClient();
-  const latest = useQuery({ queryKey: ["evals-latest"], queryFn: api.evalsLatest });
+  const latest = useQuery({ queryKey: ["evals-latest"], queryFn: api.evalsLatest, retry: 1 });
   const run = useMutation({
     mutationFn: () => api.evalsRun(6),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["evals-latest"] }),
@@ -30,7 +30,9 @@ export default function Evals() {
         </button>
       </div>
 
-      {latest.isLoading ? <Spinner /> : (
+      {latest.isLoading ? <Spinner /> : latest.isError ? (
+        <ErrorState title="EVALS unavailable" hint="Could not load evaluation data from the backend." error={latest.error} />
+      ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-px bg-surface-2 rounded overflow-hidden border border-surface-2">
             <Metric label="Pass Rate" value={`${passRate}%`} valueClass={passRate >= 90 ? "text-bull" : passRate >= 60 ? "text-watch" : "text-bear"} />

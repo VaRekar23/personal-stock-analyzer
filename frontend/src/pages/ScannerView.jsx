@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Search, ArrowUpDown, Sparkles } from "lucide-react";
 import { api } from "@/lib/api";
-import { Panel, PanelHeader, ScoreBar, BiasBadge, Spinner, MockBadge } from "@/components/common";
+import { Panel, PanelHeader, ScoreBar, BiasBadge, Spinner, MockBadge, ErrorState } from "@/components/common";
 import { inr, fmt, timeIST, modeLabel, MODES } from "@/lib/format";
 
 const COLS = [
@@ -26,9 +26,10 @@ export default function ScannerView({ lockedMode }) {
   const [sector, setSector] = useState("all");
   const [bias, setBias] = useState("all");
 
-  const { data, isLoading, isFetching } = useQuery({
+  const { data, isLoading, isFetching, isError, error } = useQuery({
     queryKey: ["scan", mode],
     queryFn: () => api.scan(mode),
+    retry: 1,
   });
 
   const rows = useMemo(() => {
@@ -95,7 +96,11 @@ export default function ScannerView({ lockedMode }) {
           </span>
         </div>
 
-        {isLoading ? <Spinner label="Scanning NIFTY 50…" /> : (
+        {isLoading ? <Spinner label="Scanning NIFTY 50…" /> : (isError || !data?.results) ? (
+          <ErrorState title="Scan failed"
+            hint="The scanner request failed. Check backend connectivity; intraday scans also require market data."
+            error={error} />
+        ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="scanner-table">
               <thead>

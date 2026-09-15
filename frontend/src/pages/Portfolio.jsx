@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Briefcase } from "lucide-react";
 import { api } from "@/lib/api";
-import { Panel, PanelHeader, Spinner, Metric, MockBadge } from "@/components/common";
+import { Panel, PanelHeader, Spinner, Metric, MockBadge, ErrorState } from "@/components/common";
 import { inr, pct, signClass, fmt, timeIST } from "@/lib/format";
 
 const HEALTH = {
@@ -13,20 +13,29 @@ const HEALTH = {
 };
 
 export default function Portfolio() {
-  const { data, isLoading } = useQuery({ queryKey: ["portfolio"], queryFn: api.portfolio });
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ["portfolio"], queryFn: api.portfolio, retry: 1,
+  });
   const s = data?.summary;
+  const src = data?.data_source;
 
   return (
     <div className="space-y-4" data-testid="portfolio-page">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-display font-bold text-slate-100">Portfolio Intelligence</h1>
-          <p className="text-sm text-slate-500">Zerodha holdings (mock) · deterministic health rules · no orders placed</p>
+          <p className="text-sm text-slate-500">
+            Zerodha holdings ({src === "zerodha" ? "live" : "demo/mock"}) · deterministic health rules · no orders placed
+          </p>
         </div>
         <MockBadge />
       </div>
 
-      {isLoading ? <Spinner /> : (
+      {isLoading ? <Spinner /> : (isError || !s) ? (
+        <ErrorState title="Portfolio unavailable"
+          hint="The portfolio request failed. Check that the backend is reachable and, for live data, that Zerodha Kite is connected under Settings."
+          error={error} />
+      ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-px bg-surface-2 rounded overflow-hidden border border-surface-2">
             <Metric label="Holdings" value={s.holdings_count} />

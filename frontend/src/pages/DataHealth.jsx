@@ -2,7 +2,7 @@ import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Database, Server, Activity, Cpu, Newspaper, BarChart3, BrainCircuit } from "lucide-react";
 import { api } from "@/lib/api";
-import { Panel, PanelHeader, Spinner, StatusPill } from "@/components/common";
+import { Panel, PanelHeader, Spinner, StatusPill, ErrorState } from "@/components/common";
 import { timeIST, dateIST } from "@/lib/format";
 
 const ICONS = {
@@ -15,7 +15,7 @@ const LABELS = {
 };
 
 export default function DataHealth() {
-  const { data, isLoading } = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: 15000 });
+  const { data, isLoading, isError, error } = useQuery({ queryKey: ["health"], queryFn: api.health, refetchInterval: 15000, retry: 1 });
 
   return (
     <div className="space-y-4" data-testid="data-health-page">
@@ -24,7 +24,11 @@ export default function DataHealth() {
         <p className="text-sm text-slate-500">Provider status · versions · ingestion & analysis freshness</p>
       </div>
 
-      {isLoading ? <Spinner /> : (
+      {isLoading ? <Spinner /> : (isError || !data?.services) ? (
+        <ErrorState title="Backend unreachable"
+          hint="Could not reach the data-health endpoint. Check that the backend service is running and CORS allows this origin."
+          error={error} />
+      ) : (
         <>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {Object.entries(data.services).map(([key, svc]) => {

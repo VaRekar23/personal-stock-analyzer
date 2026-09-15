@@ -5,6 +5,8 @@ Wires the domain layer to HTTP. On startup it connects to PostgreSQL and Redis
 index membership and EVAL datasets. See docs/ARCHITECTURE.md.
 """
 from fastapi import FastAPI
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from pathlib import Path
@@ -85,3 +87,26 @@ app.add_middleware(
     allow_headers=["*"],
     **_cors_kwargs,
 )
+
+
+# Unhandled exceptions are caught by Starlette's outermost ServerErrorMiddleware,
+# which runs OUTSIDE CORSMiddleware — so a 500 would otherwise be returned with NO
+# CORS headers and the browser would mask it as a CORS error. This handler returns
+# a readable JSON error AND attaches the CORS header so the real error is visible.
+@app.exception_handler(Exception)
+async def _unhandled_exception(request: Request, exc: Exception):
+    logger.error("Unhandled error on %s %s: %s", request.method, request.url.path,
+                 exc, exc_info=True)
+    if _cors_list:
+        origin = request.headers.get("origin", "")
+        acao = origin if origin in _cors_list else _cors_list[0]
+        headers = {"Access-Control-Allow-Origin": acao,
+                   "Access-Control-Allow-Credentials": "true"}
+    else:
+        headers = {"Access-Control-Allow-Origin": "*"}
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal error: {type(exc).__name__}: {exc}",
+                 "path": request.url.path},
+        headers=headers,
+    )

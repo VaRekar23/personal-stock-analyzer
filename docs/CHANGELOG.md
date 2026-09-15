@@ -2,6 +2,26 @@
 
 All notable architectural changes. Keep in sync with implementation & version bumps.
 
+## [1.2.2] — 2026-09-15 — Error visibility + frontend resilience
+### Fixed
+- **Global exception handler** (`server.py`): unhandled exceptions previously surfaced to the
+  browser as CORS errors because Starlette's outermost `ServerErrorMiddleware` runs OUTSIDE
+  `CORSMiddleware`, so 500 responses carried no `Access-Control-Allow-Origin`. A custom
+  `@app.exception_handler(Exception)` now returns a readable JSON error (`{detail, path}`) WITH
+  the correct CORS header, so real backend errors are visible in the browser/network tab instead
+  of being masked. Handled errors (HTTPException 4xx) already passed through CORS — unchanged.
+- **Misleading hardcoded `data_source: "mock"`** in `/api/market/overview` and `/api/candles/*`
+  now use the live `registry.data_source()`.
+- **Frontend crash resilience:** added shared `ErrorState` component; `Portfolio` (the reported
+  `holdings_count` crash), `DataHealth`, `ScannerView`, `Settings`, `Evals` now handle
+  loading/error/empty states instead of blind nested access on a failed/undefined API response.
+  `Dashboard`/`StockAnalysis` already used safe `?.`/`isError` guards.
+### Notes
+- Verified locally: `/api/portfolio`, `/api/market/overview`, `/api/analyze` all return 200 with
+  the DB both up AND down (graceful in-memory fallback). A recurring HTTP 500 on these endpoints in
+  a deployment indicates a STALE backend image (e.g. the pre-fix context-engine `get_candles`
+  signature bug). Rebuild + redeploy the backend from current code.
+
 ## [1.2.1] — 2026-09-14 — Deployment fixes (CORS, truthful health, dynamic badge)
 ### Fixed
 - **CORS (hard blocker):** `server.py` CORS is now bulletproof. Default = allow-all origins with

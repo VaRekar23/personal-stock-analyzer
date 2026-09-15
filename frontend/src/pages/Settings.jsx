@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Save, Lock, Link2, ExternalLink, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
-import { Panel, PanelHeader, Spinner } from "@/components/common";
+import { Panel, PanelHeader, Spinner, ErrorState } from "@/components/common";
 
 const Field = ({ label, value, onChange, step = "1", suffix }) => (
   <div className="flex items-center justify-between px-4 py-2.5 border-b border-surface-2/60">
@@ -101,7 +101,7 @@ const KiteConnect = () => {
 
 export default function SettingsPage() {
   const qc = useQueryClient();
-  const { data, isLoading } = useQuery({ queryKey: ["settings"], queryFn: api.settings });
+  const { data, isLoading, isError, error } = useQuery({ queryKey: ["settings"], queryFn: api.settings, retry: 1 });
   const save = useMutation({
     mutationFn: ({ section, values }) => api.updateSettings(section, values),
     onSuccess: (_, v) => { toast.success(`${v.section} settings saved`); qc.invalidateQueries({ queryKey: ["settings"] }); qc.invalidateQueries({ queryKey: ["scan"] }); },
@@ -117,7 +117,9 @@ export default function SettingsPage() {
         <p className="text-sm text-slate-500">Safe, non-sensitive configuration · secrets are never exposed here</p>
       </div>
 
-      {isLoading ? <Spinner /> : (
+      {isLoading ? <Spinner /> : (isError || !s) ? (
+        <ErrorState title="Settings unavailable" hint="Could not load settings from the backend." error={error} />
+      ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <KiteConnect />
           <Section title="Risk Engine" section="risk" values={s.risk} onSave={onSave} saving={save.isPending}
