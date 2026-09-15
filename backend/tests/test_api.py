@@ -159,7 +159,10 @@ class TestData:
     def test_fundamentals(self, sess):
         r = sess.get(f"{API}/fundamentals/TCS", timeout=TIMEOUT)
         assert r.status_code == 200
-        assert r.json().get("source") == "mock"
+        d = r.json()
+        # Provider-agnostic: live (yfinance) or mock. Verify the contract shape.
+        assert d.get("source") in ("mock", "yfinance")
+        assert "valuation" in d and "income_statement" in d
 
     def test_news(self, sess):
         r = sess.get(f"{API}/news/TCS", timeout=TIMEOUT)
@@ -167,7 +170,9 @@ class TestData:
         d = r.json()
         items = d.get("items", [])
         assert len(items) > 0
-        assert items[0].get("source") == "mock"
+        # Live (yfinance) or mock — just require a non-empty source + headline.
+        assert items[0].get("source")
+        assert items[0].get("headline")
 
     def test_candles(self, sess):
         r = sess.get(f"{API}/candles/RELIANCE", params={"interval": "1d", "count": 100}, timeout=TIMEOUT)

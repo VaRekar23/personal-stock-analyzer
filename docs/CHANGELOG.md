@@ -2,6 +2,45 @@
 
 All notable architectural changes. Keep in sync with implementation & version bumps.
 
+## [1.3.0] — 2026-09-15 — Root-cause fix: Zerodha instrument-token resolution
+### Root cause
+`No instrument_token for LTIM` (HTTP 500 on /api/candles, /api/analyze, /api/scan,
+/api/market/overview, /api/evals/run) came from `providers/zerodha/live.py`:
+`_ensure_instruments()` built a token map restricted to the hardcoded NIFTY50 list and
+filtered dump rows by `segment == "NSE"`, with NO fallback and NO graceful not-found
+path — any lookup miss raised an unhandled error.
+
+### Fixed (root cause, not suppression)
+- **New `providers/zerodha/instruments.py`** — a proper instrument master:
+  - Downloads the current NSE instrument master ONCE via the configured Kite session.
+  - Matches equity by canonical `instrument_type == "EQ"` + `exchange == "NSE"`, keyed by
+    `tradingsymbol` (no fragile `segment` assumption). Resolves **any** valid NSE symbol,
+    not just NIFTY 50.
+  - Cached in Redis (`kite:instrument_master`, 12h TTL — shared across Cloud Run's stateless
+    instances) + in-memory per instance (6h freshness), with an `asyncio.Lock` so concurrent
+    requests never trigger duplicate downloads. Refreshes on TTL/expiry.
+  - **Targeted fallback:** symbols missing from the master resolve via `ltp("NSE:SYMBOL")`
+    (Kite resolves exchange:symbol server-side and returns the token), then get cached.
+- **`UnknownSymbolError`** (in `providers/base.py`) carries `symbol` + `reason`. Registered
+  exception handlers map it to **HTTP 404**; `TokenException` → **503** (re-login),
+  `KiteException` → **502** (upstream). These run inside CORSMiddleware, so 4xx/5xx responses
+  keep CORS headers. Unhandled 500s already get CORS via the v1.2.2 handler.
+- **Correct historical call:** `continuous=False, oi=False` for NSE equity (OI is
+  derivatives-only); corrected interval mapping retained.
+- **Multi-symbol resilience:** `/api/scan` now isolates per-symbol failures (skips + logs,
+  reports a `skipped` list) instead of one symbol failing the whole scan. Context engines
+  (`market/overview`) degrade gracefully (per-index/per-peer) instead of 500ing.
+- **Startup warm-up:** the instrument master is pre-warmed at startup when Kite is connected
+  (non-fatal; lazy-loads otherwise).
+- **live.py** delegates token resolution to the new `instruments.resolve()`; the old
+  NIFTY50-only `_ensure_instruments`/`_token_cache` were removed.
+### Tests
+- `tests/test_instruments.py`: resolution order (memory→master→ltp fallback→404),
+  case-insensitivity, unknown/empty symbol → UnknownSymbolError. 13/13 tests pass.
+### Provider architecture preserved
+`DATA_PROVIDER=zerodha` still uses the live Kite adapter; mock/yfinance are untouched.
+No hardcoded LTIM mapping; tokens come from the live Kite instrument master/API.
+
 ## [1.2.2] — 2026-09-15 — Error visibility + frontend resilience
 ### Fixed
 - **Global exception handler** (`server.py`): unhandled exceptions previously surfaced to the

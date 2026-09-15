@@ -8,6 +8,9 @@ from datetime import datetime, timedelta, timezone
 
 from ..indicators import engine as ind
 from ..data.nifty50 import SECTOR_OF, SECTOR_INDEX, SYMBOLS
+from ..core.logging_config import get_logger
+
+logger = get_logger("stockai.context")
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -30,8 +33,15 @@ class MarketContextEngine:
         self.market = market_provider
 
     async def _index_view(self, proxy_symbol: str, label: str) -> dict:
-        candles = await self.market.get_candles(proxy_symbol, "1d", 400)
-        feats = ind.compute_features(proxy_symbol, candles, "1d")
+        try:
+            candles = await self.market.get_candles(proxy_symbol, "1d", 400)
+            feats = ind.compute_features(proxy_symbol, candles, "1d")
+        except Exception as e:  # noqa: BLE001 — degrade gracefully, never 500
+            logger.warning("index view %s (%s) unavailable: %s: %s",
+                           label, proxy_symbol, type(e).__name__, e)
+            return {"index": label, "direction": "neutral", "trend": None,
+                    "rsi": None, "last": None, "unavailable": True,
+                    "reason": f"{type(e).__name__}"}
         rsi = feats.get("rsi")
         return {
             "index": label,
@@ -63,9 +73,20 @@ class SectorContextEngine:
         peers = [s for s in SYMBOLS if SECTOR_OF.get(s) == sector][:6]
         dirs = []
         for s in peers:
-            candles = await self.market.get_candles(s, "1d", 120)
-            feats = ind.compute_features(s, candles, "1d")
-            dirs.append(_direction_from_trend(feats.get("trend"), feats.get("rsi")))
+            try:
+                candles = await self.market.get_candles(s, "1d", 120)
+                feats = ind.compute_features(s, candles, "1d")
+                dirs.append(_direction_from_trend(feats.get("trend"), feats.get("rsi")))
+            except Exception as e:  # noqa: BLE001 — skip unresolvable peers
+                logger.warning("sector %s peer %s skipped: %s: %s",
+                               sector, s, type(e).__name__, e)
+                continue
+        if not dirs:
+            return {"sector": sector,
+                    "mapped_index": SECTOR_INDEX.get(sector, "NIFTY 500 (proxy)"),
+                    "direction": "neutral", "constituents_bullish": 0,
+                    "constituents_bearish": 0, "sample_size": 0,
+                    "unavailable": True}
         bull = dirs.count("bullish")
         bear = dirs.count("bearish")
         direction = "bullish" if bull > bear else ("bearish" if bear > bull else "neutral")

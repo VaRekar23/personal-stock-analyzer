@@ -22,6 +22,10 @@ from ..ai.service import AIService
 from ..data.warehouse import Warehouse
 from ..data.nifty50 import SECTOR_OF, SYMBOLS, NAME_OF
 from ..settings_store import get_settings
+from ..providers.base import UnknownSymbolError
+from ..core.logging_config import get_logger
+
+logger = get_logger("stockai.orchestrator")
 
 IST = timezone(timedelta(hours=5, minutes=30))
 
@@ -178,8 +182,19 @@ class Orchestrator:
                         pass
             await _asyncio.gather(*[_pf(s) for s in symbols])
 
+        skipped = []
         for sym in symbols:
-            r = await self.analyze_stock(sym, mode, run_ai=False)
+            try:
+                r = await self.analyze_stock(sym, mode, run_ai=False)
+            except UnknownSymbolError as e:
+                # A single unresolvable instrument must not fail the whole scan.
+                logger.warning("scan: skipping unresolvable symbol %s (%s)", sym, e)
+                skipped.append({"symbol": sym, "reason": "unresolvable_instrument"})
+                continue
+            except Exception as e:  # noqa: BLE001 — isolate per-symbol failures
+                logger.warning("scan: skipping %s (%s: %s)", sym, type(e).__name__, e)
+                skipped.append({"symbol": sym, "reason": type(e).__name__})
+                continue
             setup = r.get("trade_setup") or {}
             rows.append({
                 "symbol": sym, "name": r["name"], "sector": r["sector"],
@@ -209,6 +224,7 @@ class Orchestrator:
         result = {
             "mode": mode, "as_of": datetime.now(IST).isoformat(),
             "universe": "NIFTY 50", "count": len(rows),
+            "skipped": skipped,
             "ai_finalists": len(finalists),
             "results": rows, "data_source": registry.data_source(), "from_cache": False,
             "provenance": {"strategy_version": V.STRATEGY_VERSIONS[mode],

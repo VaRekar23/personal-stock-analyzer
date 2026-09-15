@@ -63,6 +63,16 @@ async def startup():
         logger.info("Startup seeding complete")
     except Exception as e:  # noqa: BLE001
         logger.error("Startup seeding issue (non-fatal): %s", e)
+    # Warm the Zerodha instrument master at startup (only when Kite is connected)
+    # so the first candle/analysis request doesn't pay the download cost.
+    try:
+        from stockai.core.config import DATA_PROVIDER
+        if DATA_PROVIDER == "zerodha" and kite_session.has_token():
+            from stockai.providers.zerodha import instruments as kite_instruments
+            master = await kite_instruments.load_master()
+            logger.info("Warmed Zerodha instrument master (%d symbols)", len(master))
+    except Exception as e:  # noqa: BLE001 — lazy-load on first request as fallback
+        logger.warning("Instrument master warm-up skipped (non-fatal): %s", e)
 
 
 @app.on_event("shutdown")

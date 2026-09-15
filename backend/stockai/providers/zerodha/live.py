@@ -58,10 +58,11 @@ class KiteMarketDataProvider:
         token = await _instruments.resolve(symbol)
         k = _client()
         kint = _INTERVAL[interval]
+        # continuous=False, oi=False — V1 covers NSE equity only (OI applies to
+        # derivatives, not equity).
         raw = await _run(k.historical_data, token,
                          start.strftime("%Y-%m-%d %H:%M:%S"),
-                         end.strftime("%Y-%m-%d %H:%M:%S"), kint, False,
-                         interval != "1d")  # oi for intraday/derivatives only
+                         end.strftime("%Y-%m-%d %H:%M:%S"), kint, False, False)
         out = []
         for c in raw:
             d = c["date"]
