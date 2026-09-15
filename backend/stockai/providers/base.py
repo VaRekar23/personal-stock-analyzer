@@ -9,6 +9,18 @@ from typing import Protocol, runtime_checkable
 from datetime import datetime
 
 
+class UnknownSymbolError(Exception):
+    """Raised when a tradingsymbol cannot be resolved to an instrument by the
+    configured market-data provider. The API layer maps this to HTTP 404.
+
+    Carries a `reason` for diagnostics (not_found / master_unavailable / etc.).
+    """
+    def __init__(self, symbol: str, reason: str = "not_found"):
+        self.symbol = symbol
+        self.reason = reason
+        super().__init__(f"Cannot resolve instrument for symbol '{symbol}' ({reason})")
+
+
 @runtime_checkable
 class MarketDataProvider(Protocol):
     mode: str  # "mock" | "live"

@@ -20,6 +20,8 @@ from stockai.core.logging_config import setup_logging, get_logger
 from stockai.core import db, cache
 from stockai.api import api_router
 from stockai.analysis.orchestrator import get_orchestrator
+from stockai.providers.base import UnknownSymbolError
+from kiteconnect.exceptions import TokenException, KiteException
 from stockai.evals.datasets import seed_datasets
 from stockai.data.nifty50 import NIFTY50
 
@@ -109,4 +111,37 @@ async def _unhandled_exception(request: Request, exc: Exception):
         content={"detail": f"Internal error: {type(exc).__name__}: {exc}",
                  "path": request.url.path},
         headers=headers,
+    )
+
+
+# Domain/provider exceptions -> meaningful HTTP status codes. These are handled
+# by Starlette's (inner) ExceptionMiddleware, which runs INSIDE CORSMiddleware,
+# so their responses automatically carry CORS headers.
+@app.exception_handler(UnknownSymbolError)
+async def _unknown_symbol(request: Request, exc: UnknownSymbolError):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc), "symbol": exc.symbol, "reason": exc.reason,
+                 "path": request.url.path},
+    )
+
+
+@app.exception_handler(TokenException)
+async def _kite_auth(request: Request, exc: TokenException):
+    logger.warning("Zerodha auth/session error on %s: %s", request.url.path, exc)
+    return JSONResponse(
+        status_code=503,
+        content={"detail": "Zerodha Kite session missing or expired. "
+                           "Re-connect via Settings → Broker Connection.",
+                 "path": request.url.path},
+    )
+
+
+@app.exception_handler(KiteException)
+async def _kite_upstream(request: Request, exc: KiteException):
+    logger.error("Zerodha upstream error on %s: %s", request.url.path, exc)
+    return JSONResponse(
+        status_code=502,
+        content={"detail": f"Zerodha upstream error: {exc}",
+                 "path": request.url.path},
     )

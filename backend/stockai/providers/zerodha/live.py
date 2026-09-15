@@ -17,12 +17,12 @@ from ...core.config import ZERODHA_API_KEY
 from ...core.logging_config import get_logger
 from ...data.nifty50 import SYMBOLS, SECTOR_OF, NAME_OF
 from . import session
+from . import instruments as _instruments
 
 logger = get_logger("stockai.kite")
 
 _INTERVAL = {"1m": "minute", "5m": "5minute", "15m": "15minute",
              "1h": "60minute", "1d": "day"}
-_token_cache: dict[str, int] = {}   # symbol -> instrument_token
 
 
 def _client() -> KiteConnect:
@@ -38,36 +38,24 @@ async def _run(fn, *args, **kwargs):
     return await asyncio.to_thread(fn, *args, **kwargs)
 
 
-async def _ensure_instruments() -> None:
-    if _token_cache:
-        return
-    k = _client()
-    rows = await _run(k.instruments, "NSE")
-    wanted = set(SYMBOLS)
-    for r in rows:
-        if r.get("segment") == "NSE" and r.get("tradingsymbol") in wanted:
-            _token_cache[r["tradingsymbol"]] = r["instrument_token"]
-
-
 class KiteMarketDataProvider:
     name = "zerodha"
     mode = "live"
 
     async def get_instruments(self) -> list[dict]:
         try:
-            await _ensure_instruments()
+            master = await _instruments.load_master()
         except (TokenException, KiteException) as e:
-            logger.warning("kite instruments failed: %s", e)
+            logger.warning("kite instrument master unavailable: %s", e)
+            master = {}
         return [{"symbol": s, "name": NAME_OF.get(s, s), "exchange": "NSE",
-                 "segment": "EQ", "instrument_token": _token_cache.get(s),
+                 "segment": "EQ", "instrument_token": master.get(s),
                  "sector": SECTOR_OF.get(s)} for s in SYMBOLS]
 
     async def get_candles(self, symbol: str, interval: str,
                           start: datetime, end: datetime) -> list[dict]:
-        await _ensure_instruments()
-        token = _token_cache.get(symbol.upper())
-        if not token:
-            raise KiteException(f"No instrument_token for {symbol}")
+        # resolve() raises UnknownSymbolError (-> HTTP 404) for invalid symbols.
+        token = await _instruments.resolve(symbol)
         k = _client()
         kint = _INTERVAL[interval]
         raw = await _run(k.historical_data, token,
