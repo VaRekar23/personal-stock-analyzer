@@ -19,7 +19,6 @@ def _env(key: str, default: str | None = None) -> str | None:
 
 # --- Secrets / infra (environment only) ---
 DATABASE_URL = _env("DATABASE_URL")
-REDIS_URL = _env("REDIS_URL")
 
 # --- API credentials (environment only; never sent to the frontend) ---
 OPENAI_API_KEY = _env("OPENAI_API_KEY")

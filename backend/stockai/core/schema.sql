@@ -114,3 +114,15 @@ CREATE TABLE IF NOT EXISTS system.job_runs (
     detail JSONB, started_at TIMESTAMPTZ NOT NULL DEFAULT now(), finished_at TIMESTAMPTZ);
 CREATE TABLE IF NOT EXISTS system.configuration (
     key TEXT PRIMARY KEY, value JSONB NOT NULL, updated_at TIMESTAMPTZ NOT NULL DEFAULT now());
+
+-- V2: PostgreSQL-backed cache (replaces Redis). Version-aware, TTL via expires_at.
+CREATE TABLE IF NOT EXISTS system.cache_entries (
+    cache_key TEXT PRIMARY KEY,
+    namespace TEXT NOT NULL DEFAULT 'default',
+    value_json JSONB NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at TIMESTAMPTZ NOT NULL,
+    provider TEXT, model TEXT, strategy_version TEXT, prompt_version TEXT,
+    market_data_version TEXT, metadata_json JSONB);
+CREATE INDEX IF NOT EXISTS ix_cache_expires ON system.cache_entries (expires_at);
+CREATE INDEX IF NOT EXISTS ix_cache_namespace ON system.cache_entries (namespace);

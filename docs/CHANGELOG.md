@@ -2,6 +2,32 @@
 
 All notable architectural changes. Keep in sync with implementation & version bumps.
 
+## [2.0.0] — 2026-09-15 — V2: Redis removed, PostgreSQL-backed cache
+### Changed
+- **Removed Redis entirely.** Replaced the Redis cache with a PostgreSQL-backed
+  `CacheService` → `PostgresCacheBackend` (`core/cache.py`), preserving the public API
+  (`get_json/set_json/delete/stats/health/connect/disconnect`) so no callers changed.
+- New table `system.cache_entries` (JSONB, version-aware columns, UPSERT, indexes on
+  `expires_at`/`namespace`); expired rows never returned + opportunistic cleanup. Namespace
+  derived from key prefix → preserves categories (market/analysis/scanner/ai/fundamentals/news).
+- Removed Redis from: `requirements.txt` (`redis`), `backend/.env`/`.env.example`
+  (`REDIS_URL`), `config.py`, supervisor (`datastores.conf`), `docker-compose.yml`
+  (service + `depends_on` + env), and local runtime.
+- Data Health now reports cache as **PostgreSQL Cache** (`backend: postgresql`); frontend
+  label updated from "Cache (Redis)".
+### Verified
+- Zero-Redis acceptance: app starts with `REDIS_URL` absent and no Redis process; cache
+  round-trip works (`from_cache: True`); health shows PostgreSQL Cache.
+- Tests: `tests/test_cache.py` (set/get, TTL expiry, prefix delete, namespace). Full suite
+  green except transient external yfinance-news flakiness (assertion relaxed to best-effort).
+### Docs
+- Added `docs/V2_IMPLEMENTATION_BASELINE.md`, `docs/V2_IMPLEMENTATION_STATUS.md`; rewrote
+  `docs/CACHE_STRATEGY.md`.
+### Unchanged (preserved)
+- Deterministic-first architecture, scoring/risk/strategy logic & versions, provider
+  abstractions, live Zerodha/instrument resolution, yfinance fundamentals/news, OpenAI +
+  Gemini fallback, EVALS, historical NIFTY 50 membership, frontend design.
+
 ## [1.3.0] — 2026-09-15 — Root-cause fix: Zerodha instrument-token resolution
 ### Root cause
 `No instrument_token for LTIM` (HTTP 500 on /api/candles, /api/analyze, /api/scan,

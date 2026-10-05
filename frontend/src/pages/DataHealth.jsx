@@ -10,7 +10,7 @@ const ICONS = {
   fundamental: Activity, news: Newspaper, ai: Cpu, knowledge_rag: BrainCircuit,
 };
 const LABELS = {
-  database: "Database (PostgreSQL)", cache: "Cache (Redis)", zerodha: "Zerodha / Kite",
+  database: "Database (PostgreSQL)", cache: "Cache (PostgreSQL)", zerodha: "Zerodha / Kite",
   fundamental: "Fundamental Data", news: "News Feed", ai: "AI Provider", knowledge_rag: "Knowledge / RAG",
 };
 

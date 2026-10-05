@@ -1,35 +1,38 @@
-# Cache Strategy
+# Cache Strategy (V2 — PostgreSQL-backed)
 
-Redis is the performance layer; **PostgreSQL/TimescaleDB is the source of truth**.
-Cache failures never break functionality.
+**Redis has been removed.** The cache now lives in PostgreSQL (`system.cache_entries`),
+so this single-user app needs no separate Redis service (lower Cloud cost). PostgreSQL
+remains the single source of truth; the cache is a derived, TTL-bounded table.
 
-## Backend (`core/cache.py`)
-- Redis (`REDIS_URL`) with a bounded **in-memory fallback** dict if Redis is unavailable.
-- `get_json / set_json(ttl) / delete(prefix)`; tracks hits/misses → `stats()` (hit rate +
-  backend) shown on Data Health.
-- On Redis error mid-request, falls back silently; Data Health shows Redis DEGRADED/DOWN.
+## Backend
+`CacheService` API (`core/cache.py`) is unchanged for callers:
+`get_json(key)`, `set_json(key, value, ttl, **meta)`, `delete(prefix)`, `stats()`, `health()`,
+`connect()`, `disconnect()`. Implementation = `PostgresCacheBackend` using UPSERT
+(`ON CONFLICT (cache_key) DO UPDATE`), concurrency-safe. Expired rows are never returned
+(filtered by `expires_at > now()`) and are swept opportunistically (≤ every 5 min) and on
+`delete`. If Postgres itself is down, a small bounded in-memory dict is used so a cache
+outage never breaks functionality (Data Health then shows DEGRADED).
 
-## What is cached & keys
-| Data | Key | Default TTL |
+## Table
+`system.cache_entries(cache_key PK, namespace, value_json JSONB, created_at, expires_at,
+provider, model, strategy_version, prompt_version, market_data_version, metadata_json)`
+with indexes on `expires_at` and `namespace`. `namespace` is derived from the key prefix.
+
+## Categories (key prefixes → namespace)
+`market:` · `analysis:` · `scanner:` · `ai:` · `fund:` (fundamentals) · news. Keys are
+**version-aware**; the AI cache key includes symbol, analysis_type, market_data_version,
+strategy_version, prompt_version, provider, model — never symbol alone.
+
+## TTLs (configurable in `settings`/`core/config.py` `DEFAULT_SETTINGS["cache"]`)
+| Category | TTL | Why |
 |---|---|---|
-| Single-stock analysis | `analysis:<mode>:<symbol>` | `analysis_ttl_seconds` = 3600 |
-| Scanner result | `scanner:<mode>:<count>` | `scanner_ttl_seconds` = 1800 |
-| AI explanation | `ai:<type>:<symbol>:<hash>` (see AI_ARCHITECTURE.md) | `ai_ttl_seconds` = 86400 |
-| (Market-data response) | reserved | `market_data_ttl_seconds` = 300 |
+| analysis | ~15 min | re-use within a trading session; cheap to recompute deterministically |
+| scanner | ~15 min | 50-stock scan is expensive (AI finalists); session-stable |
+| market-data | short | freshness matters; warehouse is the durable store |
+| fundamentals | ~6 h | fundamentals change slowly; avoids hammering Yahoo |
+| news | ~30 min | context refreshes periodically |
+| AI | ~24 h | identical grounded input ⇒ identical explanation; key is version-aware; biggest cost saver |
 
-AI results are also persisted to `analysis.ai_analyses` so they survive cache flushes.
-
-## Invalidation
-- TTL-based expiry (all keys).
-- On Settings change, `analysis:` and `scanner:` prefixes are cleared so new config takes effect.
-- AI cache keys embed `market_data_version`, strategy/prompt/provider/model versions, so
-  they self-invalidate when the effective input changes (no manual purge needed).
-
-## Read-through pattern
-`analysis` and `scan` check cache first; on miss they compute and populate. A cached
-single-stock analysis that lacks AI (produced by a `run_ai=False` scan pass) is
-transparently recomputed when AI is requested.
-
-## Cost implications
-Caching + deterministic-first shortlisting are the primary AI-cost controls (see
-COST_CONTROL section of the spec and AI_ARCHITECTURE.md).
+## Acceptance (zero-Redis)
+App starts with `REDIS_URL` absent and no Redis service; Data Health reports cache as
+**PostgreSQL Cache** (`backend: postgresql`); no endpoint fails because Redis is unavailable.

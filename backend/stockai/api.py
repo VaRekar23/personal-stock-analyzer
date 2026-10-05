@@ -37,7 +37,7 @@ async def root():
 async def health():
     orch = get_orchestrator()
     db_h = await db.health()
-    redis_h = await cache.health()
+    cache_h = await cache.health()
     modes = registry.provider_modes()
     last_ingest = await orch.warehouse.last_ingestion_summary()
 
@@ -65,7 +65,7 @@ async def health():
         "services": {
             "database": {"status": db_h["status"].upper(), "detail": db_h["detail"],
                          "engine": "PostgreSQL 15 (Timescale-ready)"},
-            "cache": {"status": redis_h["status"].upper(), "detail": redis_h["detail"],
+            "cache": {"status": cache_h["status"].upper(), "detail": cache_h["detail"],
                       "stats": cache.stats()},
             "zerodha": {"status": prov_status(modes["data"]),
                         "detail": ("Zerodha Kite live" if modes["data"]["live"]
