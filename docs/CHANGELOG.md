@@ -191,3 +191,7 @@ No hardcoded LTIM mapping; tokens come from the live Kite instrument master/API.
 - Deterministic backtester backtest_v1 (stockai/backtest/): bar-close signals, next-bar limit entry at zone edge, stop-first ambiguity, gap rules, full T1 exit + T2 counterfactual, costs/slippage gross vs net, unresolved trades, intraday session exits.
 - Metrics + equity curve, coverage/quality checks, chunked Zerodha data prep (missing ranges only), PG job runs with identity reuse + heartbeat recovery, membership CSV importer + verification_status. Index-wide runs disabled.
 - 21 synthetic strategy EVAL fixtures (/api/evals/strategy). /backtesting UI. tests: 70 passed. Docs: STRATEGY_EVALUATION.md; stale Redis/mock docs reconciled.
+
+## Fix (2026-10-10): mock/real candle mixing
+- Root cause: mock daily candles (stamped 15:30, every calendar day) and Zerodha daily candles (stamped 00:00 IST) were stored side by side in market.candles_1d; backtests and live analysis read both, so fake and real prices interleaved (SYNTHETIC flag, hundreds of false >20% discontinuities). Prepare-data also counted mock rows as coverage.
+- Fix: warehouse reads filter by the active provider source; backtests load a single source per symbol (Zerodha if any stored for the range, else mock); prepare computes missing ranges from Zerodha rows only; quality flags same-date daily duplicates and mixed sources. Test: tests/test_candle_sources.py.

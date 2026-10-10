@@ -64,3 +64,5 @@ Automated order execution, autonomous trading agents, multi-tenant SaaS/billing,
 - backtest_v1: swing 1d + intraday 15m/5m; user decisions: full exit at T1 (T2 counterfactual), limit at zone edge next bar only, index-wide runs refused, Prepare-data button (Zerodha chunked).
 - Endpoints: GET /api/backtests/options, POST /api/backtests/coverage, POST /api/backtests/prepare, POST /api/backtests, GET /api/backtests, GET /api/backtests/{id}, GET /api/evals/strategy, POST /api/index-memberships/import.
 - Remaining: live Zerodha validation of prepare + intraday; verified membership data (BLOCKED); OpenAI key still credit_balance_exhausted.
+
+- 2026-10-10: Fixed mock/Zerodha candle mixing in warehouse + backtests (user report: deployed backtest flagged SYNTHETIC with 332 discontinuities). Needs redeploy + Prepare data on Cloud Run.

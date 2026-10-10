@@ -79,8 +79,12 @@ class Warehouse:
                 symbol, interval, end - timedelta(minutes=minutes * count), end)
 
         table = _TABLE[interval]
+        # Never mix providers in one series: mock rows (15:30 stamps) and Zerodha rows
+        # (00:00 stamps) coexist in the table for the same dates.
+        src = "zerodha" if getattr(self.market, "mode", "mock") == "live" else "mock"
         existing = await db.fetchrow(
-            f"SELECT count(*) AS n, max(ts) AS latest FROM {table} WHERE symbol=$1", symbol)
+            f"SELECT count(*) AS n, max(ts) AS latest FROM {table} "
+            f"WHERE symbol=$1 AND source=$2", symbol, src)
         n = existing["n"] if existing else 0
         stale = True
         if existing and existing["latest"]:
@@ -91,8 +95,8 @@ class Warehouse:
 
         rows = await db.fetch(
             f"""SELECT ts,open,high,low,close,volume,open_interest,source
-                FROM {table} WHERE symbol=$1 ORDER BY ts DESC LIMIT $2""",
-            symbol, count)
+                FROM {table} WHERE symbol=$1 AND source=$3 ORDER BY ts DESC LIMIT $2""",
+            symbol, count, src)
         rows.reverse()
         return [{"ts": r["ts"].isoformat(), "open": float(r["open"]),
                  "high": float(r["high"]), "low": float(r["low"]),

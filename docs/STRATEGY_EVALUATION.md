@@ -99,3 +99,6 @@ membership eligibility, zero/small-sample metrics.
 
 ## Explicitly not done
 No weight optimization, parameter search, walk-forward or "validated" labels. One period's result is not validation.
+
+### Data-source isolation
+A series is never mixed across providers. Backtests use stored Zerodha candles when any exist for the range (whether or not today's Kite token is valid), otherwise mock candles, which are flagged SYNTHETIC. Coverage warns about mixed sources and about trading dates with more than one daily candle.

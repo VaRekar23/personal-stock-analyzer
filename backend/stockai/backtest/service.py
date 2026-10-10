@@ -82,15 +82,26 @@ def _row(r):
             "volume": int(r["volume"]), "source": r["source"]}
 
 
+async def pick_source(symbol, interval, start, end) -> str:
+    """Real Zerodha candles if any are stored for the range, else mock. Never mixed.
+    Independent of today's Kite token — backtests use stored data only."""
+    s, e = _bounds(start, end)
+    row = await db.fetchrow(f"SELECT count(*) AS n FROM {_TABLE[interval]} WHERE symbol=$1 "
+                            f"AND source='zerodha' AND ts >= $2 AND ts <= $3", symbol, s, e)
+    return "zerodha" if row and row["n"] else "mock"
+
+
 async def load_stored(symbol, interval, start, end) -> list[dict]:
-    """Stored candles only: WINDOW bars before start (warm-up) + the range."""
+    """Stored candles only (single source): WINDOW bars before start (warm-up) + the range."""
     table = _TABLE[interval]
     s, e = _bounds(start, end)
+    src = await pick_source(symbol, interval, start, end)
     pre = await db.fetch(f"SELECT ts,open,high,low,close,volume,source FROM {table} "
-                         f"WHERE symbol=$1 AND ts < $2 ORDER BY ts DESC LIMIT $3",
-                         symbol, s, E.WINDOW[interval])
+                         f"WHERE symbol=$1 AND source=$4 AND ts < $2 ORDER BY ts DESC LIMIT $3",
+                         symbol, s, E.WINDOW[interval], src)
     rng = await db.fetch(f"SELECT ts,open,high,low,close,volume,source FROM {table} "
-                         f"WHERE symbol=$1 AND ts >= $2 AND ts <= $3 ORDER BY ts", symbol, s, e)
+                         f"WHERE symbol=$1 AND source=$4 AND ts >= $2 AND ts <= $3 ORDER BY ts",
+                         symbol, s, e, src)
     return [_row(r) for r in reversed(pre)] + [_row(r) for r in rng]
 
 
@@ -124,7 +135,7 @@ async def prepare(req: dict) -> dict:
     report = []
     for sym in r["symbols"]:
         row = await db.fetchrow(f"SELECT min(ts) lo, max(ts) hi FROM {table} WHERE symbol=$1 "
-                                f"AND ts >= $2 AND ts <= $3", sym, want_s, want_e)
+                                f"AND source='zerodha' AND ts >= $2 AND ts <= $3", sym, want_s, want_e)
         lo, hi = (row or {}).get("lo"), (row or {}).get("hi")
         ranges = [(want_s, want_e)] if not lo else \
             [x for x in ((want_s, lo - timedelta(minutes=1)), (hi + timedelta(minutes=1), want_e)) if x[0] < x[1]]

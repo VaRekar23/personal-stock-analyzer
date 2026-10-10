@@ -10,7 +10,10 @@ STEP_MIN = {"15m": 15, "5m": 5}
 def assess(symbol, candles, interval, start: date, end: date, warmup_bars: int) -> dict:
     warnings = []
     if not candles:
-        return {"symbol": symbol, "bars": 0, "ok": False, "synthetic": False,
+        return {"symbol": symbol, "interval": interval, "bars": 0, "warmup_bars": 0, "first": None,
+                "last": None, "duplicates": 0, "gaps": [], "gap_count": 0, "discontinuities": [],
+                "invalid_ohlc": 0, "partial_sessions": 0, "sources": [], "synthetic": False,
+                "price_adjustment": None, "ok": False,
                 "warnings": [f"{symbol}: no stored {interval} candles — use 'Prepare data'."]}
     ts = [c["ts"] for c in candles]
     dups = sum(v - 1 for v in Counter(ts).values() if v > 1)
@@ -20,6 +23,12 @@ def assess(symbol, candles, interval, start: date, end: date, warmup_bars: int) 
     last_day = in_range[-1]["ts"][:10] if in_range else None
     if dups:
         warnings.append(f"{symbol}: {dups} duplicate timestamps.")
+    if interval == "1d":
+        day_dups = sum(v - 1 for v in Counter(t[:10] for t in ts).values() if v > 1)
+        if day_dups:
+            dups += day_dups
+            warnings.append(f"{symbol}: {day_dups} trading dates have more than one daily candle "
+                            "(mixed data sources?) — results are unreliable.")
     if pre < warmup_bars:
         warnings.append(f"{symbol}: only {pre} warm-up bars before start (need {warmup_bars}); "
                         "early signals are delayed until warm-up is satisfied.")
@@ -60,8 +69,11 @@ def assess(symbol, candles, interval, start: date, end: date, warmup_bars: int) 
         warnings.append(f"{symbol}: {bad} candles with inconsistent OHLC.")
     sources = sorted({c.get("source") or "unknown" for c in candles})
     synthetic = any(s in ("mock", "synthetic", "unknown") for s in sources)
+    if len(sources) > 1:
+        warnings.append(f"{symbol}: mixed data sources {sources} in one series.")
     if synthetic:
-        warnings.append(f"{symbol}: SYNTHETIC/MOCK candles present — results are NOT real market history.")
+        warnings.append(f"{symbol}: SYNTHETIC/MOCK candles used — no real Zerodha history is stored "
+                        "for this range. Connect Zerodha and click 'Prepare data'.")
     return {
         "symbol": symbol, "interval": interval, "bars": len(in_range), "warmup_bars": pre,
         "first": first_day, "last": last_day, "duplicates": dups, "gaps": gaps[:20],
