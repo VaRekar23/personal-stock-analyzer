@@ -1,0 +1,22 @@
+{
+  "summary": "Responsive layout testing (StockAI) across mobile 390x844, tablet 768x1024, and desktop 1920x900. All responsive requirements from the review request verified: hamburger drawer behavior (open/close via toggle/overlay/close button/nav tap), all 12 -m suffixed nav items present, no horizontal page-level scroll on any mobile route, global symbol search works on mobile, desktop retains original sidebar + full TopBar (NIFTY/BANKNIFTY, market status, MockBadge, IST clock), no mobile -m testids leak into desktop DOM, tablet correctly hides sidebar and shows hamburger.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "Layout.jsx is clean and well under size thresholds; good use of data-testid, aria-labels and 44x44 touch targets on hamburger/close.",
+    "Minor nit: 503s observed intermittently on initial resource loads (pod warmup / preview). Not a code issue."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "N/A (not tested per request)", "frontend": "100%"},
+  "seed_data_creation": "none",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Responsive layout verified end-to-end on mobile/tablet/desktop. Mobile pages checked for body.scrollWidth<=viewport: /, /portfolio, /scanner, /stock-analysis?symbol=RELIANCE, /research, /backtesting, /evals, /data-health, /settings all pass (scrollWidth==390). Desktop pages /backtesting, /research, /scanner, /portfolio scrollWidth==1920. Drawer open/close via toggle, overlay click, close button, and nav item click all confirmed. Global symbol search navigates on mobile. Preview is in MOCK mode as expected.",
+  "rca of the issue": "N/A — no bugs found."
+}

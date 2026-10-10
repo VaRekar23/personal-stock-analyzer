@@ -66,3 +66,5 @@ Automated order execution, autonomous trading agents, multi-tenant SaaS/billing,
 - Remaining: live Zerodha validation of prepare + intraday; verified membership data (BLOCKED); OpenAI key still credit_balance_exhausted.
 
 - 2026-10-10: Fixed mock/Zerodha candle mixing in warehouse + backtests (user report: deployed backtest flagged SYNTHETIC with 332 discontinuities). Needs redeploy + Prepare data on Cloud Run.
+
+- 2026-10-10: Responsive pass — Layout.jsx rewritten (mobile drawer nav, reflowing TopBar), mobile-friendly backtest form/metrics and Stock Analysis grids; verified 390/768/1920 (testing report iteration_3, 100%).
