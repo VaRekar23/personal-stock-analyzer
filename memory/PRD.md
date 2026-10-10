@@ -48,3 +48,14 @@ FastAPI (`/api`) + React Query dashboard. Full versioning/provenance. Docs in `/
 
 ## Explicitly out of scope (all versions unless changed)
 Automated order execution, autonomous trading agents, multi-tenant SaaS/billing, mobile app.
+
+
+# V3 (2026-10-10)
+## Implemented: Part A — Knowledge Research (RAG)
+- PgKnowledgeProvider: PostgreSQL FTS ingestion/retrieval, content-hash dedupe, pypdf PDF extraction, bounded chunks with page provenance.
+- Grounded research (stockai/knowledge/research.py) via existing AIProvider chain; citations resolve to stored chunks; prompt-injection guard verified; explicit "not established" when no evidence.
+- API: POST /api/knowledge/upload, GET/DELETE /api/knowledge/documents, GET /api/knowledge/search, POST /api/research. UI: /research page.
+- Tests: tests/test_knowledge.py (4). Full suite 41/41. Docs: KNOWLEDGE_RESEARCH.md, V3_IMPLEMENTATION_BASELINE.md, V3_IMPLEMENTATION_STATUS.md.
+## Decisions
+- FTS-only (no pgvector/embeddings) per user; swing+intraday backtester (swing first) approved for Part B follow-up.
+## Next: Part B — deterministic backtester (next-open entry, conservative same-candle rule, no look-ahead, synthetic EVAL fixtures, PG run records, Backtesting UI).

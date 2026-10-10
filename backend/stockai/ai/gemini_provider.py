@@ -46,6 +46,8 @@ class GeminiProvider:
         )
         contents = (f"{system}\n\n{prompt}\n\nCONTEXT JSON:\n"
                     f"{json.dumps(context, default=str)[:12000]}")
+        if context.get("task") == "research":
+            contents = prompt  # research prompt is self-contained & grounded
         cfg = types.GenerateContentConfig(
             temperature=AI_TEMPERATURE, max_output_tokens=AI_MAX_TOKENS,
             response_mime_type="application/json")
@@ -69,15 +71,16 @@ class GeminiProvider:
 
         score = context.get("score") or {}
         det_bias = (score.get("bias") or "").lower()
-        data["bias"] = {"bullish": "LONG", "bearish": "SHORT"}.get(det_bias, "NEUTRAL")
-        if score.get("confidence") is not None:
-            data["confidence"] = score["confidence"]
-        data.setdefault("summary", "")
-        for k in ("bullish_factors", "bearish_factors", "risks",
-                  "invalidation_conditions", "missing_data_warnings"):
-            v = data.get(k)
-            if not isinstance(v, list):
-                data[k] = [] if v is None else [str(v)]
+        if context.get("task") != "research":
+            data["bias"] = {"bullish": "LONG", "bearish": "SHORT"}.get(det_bias, "NEUTRAL")
+            if score.get("confidence") is not None:
+                data["confidence"] = score["confidence"]
+            data.setdefault("summary", "")
+            for k in ("bullish_factors", "bearish_factors", "risks",
+                      "invalidation_conditions", "missing_data_warnings"):
+                v = data.get(k)
+                if not isinstance(v, list):
+                    data[k] = [] if v is None else [str(v)]
         data["provider"] = self.name
         data["model"] = self.model
         data["prompt_version"] = context.get("prompt_version", "")

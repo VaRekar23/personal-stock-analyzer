@@ -183,3 +183,6 @@ No hardcoded LTIM mapping; tokens come from the live Kite instrument master/API.
 - Frontend uses React+Tailwind+shadcn (JS) instead of MUI+TypeScript (user choice).
 - TimescaleDB extension unavailable on this arch → plain PostgreSQL 15 with Timescale-ready
   schema (documented). All external providers are MOCK (no credentials configured).
+
+## V3 Part A (2026-10-10)
+- Knowledge Research (RAG): PostgreSQL full-text search, PgKnowledgeProvider, content-hash dedupe, pypdf extraction, grounded research via AI provider chain with citation resolution and prompt-injection guard. New endpoints /api/knowledge/* and /api/research; new /research UI page. 41/41 tests pass. Part B (backtester) deferred.

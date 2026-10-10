@@ -18,7 +18,7 @@ from .mock.market import MockMarketDataProvider
 from .mock.fundamental import MockFundamentalDataProvider
 from .mock.news import MockNewsProvider
 from .mock.portfolio import MockPortfolioProvider
-from .knowledge import NullKnowledgeProvider
+from .knowledge import PgKnowledgeProvider, NullKnowledgeProvider
 from .zerodha import session as kite_session
 from ..ai.mock_provider import MockAIProvider
 
@@ -28,7 +28,7 @@ _mock_market = MockMarketDataProvider()
 _mock_fundamental = MockFundamentalDataProvider()
 _mock_news = MockNewsProvider()
 _mock_portfolio = MockPortfolioProvider(_mock_market)
-_knowledge = NullKnowledgeProvider()
+_knowledge = PgKnowledgeProvider()
 
 _kite_market = None
 _kite_portfolio = None
@@ -147,5 +147,6 @@ def provider_modes() -> dict:
                "model": getattr(ai, "model", "mock"),
                "fallback": [getattr(p, "name", "?") for p in fb],
                "live": getattr(ai, "name", "mock") in ("openai", "gemini")},
-        "knowledge": {"selected": "null", "mode": _knowledge.mode, "live": False},
+        "knowledge": {"selected": getattr(_knowledge, "name", "null"),
+                      "mode": _knowledge.mode, "live": _knowledge.mode == "live"},
     }

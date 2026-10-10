@@ -29,4 +29,12 @@ export const api = {
   kiteConnect: (request_token) =>
     client.post("/kite/session", { request_token }).then((r) => r.data),
   kiteLogout: () => client.post("/kite/logout").then((r) => r.data),
+  knowledgeDocuments: (symbol) =>
+    client.get("/knowledge/documents", { params: symbol ? { symbol } : {} }).then((r) => r.data),
+  knowledgeDelete: (id) => client.delete(`/knowledge/documents/${id}`).then((r) => r.data),
+  knowledgeUpload: (formData) =>
+    client.post("/knowledge/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }).then((r) => r.data),
+  research: (body) => client.post("/research", body).then((r) => r.data),
 };

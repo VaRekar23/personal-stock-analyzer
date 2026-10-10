@@ -5,18 +5,20 @@ as structured, actionable responses; nothing returns fabricated data silently.
 """
 from __future__ import annotations
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File, Form
 from pydantic import BaseModel
 
 from .core import db, cache
 from .core import versions as V
-from .core.config import ZERODHA_API_KEY, ZERODHA_API_SECRET
+from .core.config import ZERODHA_API_KEY, ZERODHA_API_SECRET, DEFAULT_SETTINGS
 from .providers import registry
 from .providers.mock.market import market_status
 from .providers.zerodha import session as kite_session
+from .providers.knowledge import extract_pdf
 from .analysis.orchestrator import get_orchestrator, reset_orchestrator
 from .analysis.portfolio import analyze_portfolio
 from .evals.datasets import run_evals
+from .knowledge.research import run_research
 from .settings_store import get_settings, update_settings
 from .data.nifty50 import NIFTY50
 
@@ -297,3 +299,85 @@ async def kite_logout():
     await cache.delete("analysis:")
     await cache.delete("scanner:")
     return {"connected": False}
+
+
+# ---------------- Knowledge research (RAG, V3) ----------------
+MAX_UPLOAD_MB = 15
+
+
+@api_router.get("/knowledge/documents")
+async def knowledge_documents(symbol: str | None = Query(None)):
+    kp = registry.knowledge_provider()
+    return {"documents": await kp.list_documents(symbol),
+            "stats": await kp.stats()}
+
+
+@api_router.post("/knowledge/upload")
+async def knowledge_upload(
+    file: UploadFile = File(...),
+    title: str | None = Form(None),
+    symbol: str | None = Form(None),
+    doc_type: str = Form("other"),
+    source: str | None = Form(None),
+    publication_date: str | None = Form(None),
+):
+    name = (file.filename or "document").strip()
+    safe_title = title or name
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+        raise HTTPException(413, f"File exceeds {MAX_UPLOAD_MB} MB limit")
+    page_offsets = None
+    lower = name.lower()
+    try:
+        if lower.endswith(".pdf"):
+            text, page_offsets = extract_pdf(data)
+        elif lower.endswith((".txt", ".md", ".csv")):
+            text = data.decode("utf-8", errors="replace")
+        else:
+            raise HTTPException(415, "Unsupported file type. Upload PDF or text (.txt/.md).")
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(422, str(e))
+    if not text or not text.strip():
+        raise HTTPException(422, "No extractable text found in the document.")
+    kp = registry.knowledge_provider()
+    try:
+        res = await kp.ingest(text=text, title=safe_title,
+                              symbol=symbol or None, doc_type=doc_type,
+                              source=source or f"upload:{name}",
+                              publication_date=publication_date or None,
+                              page_offsets=page_offsets)
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(500, f"Ingestion failed: {type(e).__name__}: {e}")
+    return res
+
+
+@api_router.delete("/knowledge/documents/{doc_id}")
+async def knowledge_delete(doc_id: str):
+    ok = await registry.knowledge_provider().delete_document(doc_id)
+    if not ok:
+        raise HTTPException(404, "Document not found or store unavailable")
+    return {"deleted": True, "id": doc_id}
+
+
+@api_router.get("/knowledge/search")
+async def knowledge_search(q: str = Query(..., min_length=2),
+                           symbol: str | None = Query(None),
+                           k: int = Query(6, ge=1, le=8)):
+    chunks = await registry.knowledge_provider().retrieve(q, symbol, k)
+    return {"query": q, "symbol": symbol, "results": chunks, "count": len(chunks)}
+
+
+class ResearchReq(BaseModel):
+    query: str
+    symbol: str | None = None
+    k: int = 6
+
+
+@api_router.post("/research")
+async def research(req: ResearchReq):
+    if len(req.query.strip()) < 3:
+        raise HTTPException(400, "Query too short")
+    return await run_research(query=req.query.strip(),
+                              symbol=(req.symbol or None), k=req.k)

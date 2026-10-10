@@ -126,3 +126,35 @@ CREATE TABLE IF NOT EXISTS system.cache_entries (
     market_data_version TEXT, metadata_json JSONB);
 CREATE INDEX IF NOT EXISTS ix_cache_expires ON system.cache_entries (expires_at);
 CREATE INDEX IF NOT EXISTS ix_cache_namespace ON system.cache_entries (namespace);
+
+-- V3: Knowledge research (RAG) — documents + chunks with PostgreSQL full-text search.
+CREATE SCHEMA IF NOT EXISTS knowledge;
+CREATE TABLE IF NOT EXISTS knowledge.documents (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    symbol TEXT,
+    doc_type TEXT NOT NULL DEFAULT 'other',
+    source TEXT,
+    publication_date DATE,
+    uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    content_hash TEXT NOT NULL UNIQUE,
+    status TEXT NOT NULL DEFAULT 'pending',
+    extraction_version TEXT NOT NULL DEFAULT 'extract_v1',
+    indexing_status TEXT NOT NULL DEFAULT 'pending',
+    error_detail TEXT,
+    chunk_count INTEGER NOT NULL DEFAULT 0,
+    char_count INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX IF NOT EXISTS ix_docs_symbol ON knowledge.documents (symbol);
+CREATE INDEX IF NOT EXISTS ix_docs_type ON knowledge.documents (doc_type);
+
+CREATE TABLE IF NOT EXISTS knowledge.chunks (
+    id TEXT PRIMARY KEY,
+    document_id TEXT NOT NULL REFERENCES knowledge.documents(id) ON DELETE CASCADE,
+    symbol TEXT,
+    seq INTEGER NOT NULL,
+    page INTEGER,
+    content TEXT NOT NULL,
+    ts tsvector GENERATED ALWAYS AS (to_tsvector('english', content)) STORED);
+CREATE INDEX IF NOT EXISTS ix_chunks_ts ON knowledge.chunks USING GIN (ts);
+CREATE INDEX IF NOT EXISTS ix_chunks_doc ON knowledge.chunks (document_id);
+CREATE INDEX IF NOT EXISTS ix_chunks_symbol ON knowledge.chunks (symbol);

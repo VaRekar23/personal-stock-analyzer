@@ -32,3 +32,4 @@ openai==1.99.9
 kiteconnect==5.0.1
 google-genai==1.29.0
 yfinance==0.2.65
+pypdf==4.3.1

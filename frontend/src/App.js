@@ -8,6 +8,7 @@ import ScannerView from "@/pages/ScannerView";
 import Evals from "@/pages/Evals";
 import DataHealth from "@/pages/DataHealth";
 import SettingsPage from "@/pages/Settings";
+import Research from "@/pages/Research";
 
 const ModePage = () => {
   const { mode } = useParams();
@@ -25,6 +26,7 @@ function App() {
           <Route path="/scanner" element={<ScannerView />} />
           <Route path="/mode/:mode" element={<ModePage />} />
           <Route path="/evals" element={<Evals />} />
+          <Route path="/research" element={<Research />} />
           <Route path="/data-health" element={<DataHealth />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
