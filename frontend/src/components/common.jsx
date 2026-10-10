@@ -194,9 +194,9 @@ export const EmptyState = ({ title, hint }) => (
 );
 
 export const Metric = ({ label, value, sub, valueClass = "text-slate-100" }) => (
-  <div className="px-4 py-3">
+  <div className="px-3 py-2 sm:px-4 sm:py-3">
     <div className="text-[10px] uppercase tracking-wider text-slate-500">{label}</div>
-    <div className={`font-mono text-xl font-bold ${valueClass}`}>{value}</div>
+    <div className={`font-mono text-base sm:text-xl font-bold ${valueClass}`}>{value}</div>
     {sub && <div className="text-xs text-slate-500 mt-0.5">{sub}</div>}
   </div>
 );

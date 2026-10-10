@@ -192,7 +192,7 @@ export default function StockAnalysis() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
               <Panel className="lg:col-span-2">
                 <PanelHeader title="Indicators (deterministic · technical_v1)" />
-                <div className="grid grid-cols-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2">
                   <div>
                     <Row label="Trend" value={f?.trend} />
                     <Row label="RSI (14)" value={fmt(f?.rsi, 1)} />

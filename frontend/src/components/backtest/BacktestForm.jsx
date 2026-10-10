@@ -17,7 +17,7 @@ export const BacktestForm = ({ form, setForm, intervals, onCoverage, onPrepare, 
   };
   return (
     <div className="p-4 space-y-3" data-testid="backtest-form">
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Strategy">
           <select value={form.mode} onChange={setMode} className={inputCls} data-testid="bt-mode-select">
             <option value="swing">Swing (swing_v1)</option>
@@ -33,7 +33,7 @@ export const BacktestForm = ({ form, setForm, intervals, onCoverage, onPrepare, 
       <Field label="Symbols (comma-separated, max 10)">
         <input value={form.symbols} onChange={set("symbols")} className={inputCls} data-testid="bt-symbols-input" placeholder="RELIANCE, ITC" />
       </Field>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Field label="Start"><input type="date" value={form.start} onChange={set("start")} className={inputCls} data-testid="bt-start-input" /></Field>
         <Field label="End"><input type="date" value={form.end} onChange={set("end")} className={inputCls} data-testid="bt-end-input" /></Field>
         <Field label="Capital (₹, hypothetical)"><input type="number" value={form.capital} onChange={set("capital")} className={inputCls} data-testid="bt-capital-input" /></Field>
