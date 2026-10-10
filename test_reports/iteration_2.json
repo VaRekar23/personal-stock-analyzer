@@ -1,0 +1,39 @@
+{
+  "summary": "V3 Part B (Backtesting) + Part A regression tested end-to-end. 24/24 backend API tests pass against the public URL (options contract, coverage swing 2026 and past ranges, prepare→422 MOCK message, 8 validation rejections, swing run lifecycle + metric keys, entry-after-signal invariant, run-identity reuse, slippage mutation creates new id, zero-cost GROSS warning + gross==net, positive costs net<gross, intraday 15m no-overnight hold, list runs, 404 for random/invalid uuid, 21/21 SYNTHETIC strategy evals, knowledge upload→research→citations→delete). Frontend /backtesting verified: nav-backtesting present, bt-mock-mode-banner shown, mode toggle flips interval options to [15m,5m], Check-data populates bt-coverage-row rows + warnings, Prepare shows MOCK-mode error toast, Run completes to 'completed' with bt-synthetic-banner + bt-metrics + bt-provenance + run-list rows, strategy-evals-run-btn → '21/21 passed'. Dashboard, Stock Analysis, Scanner, EVALS, Settings, Research all load without console errors.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/backtests/coverage", "issue": "Coverage row uses field name 'warmup_bars' while the review-request spec documents it as 'warmup'. Not a bug (frontend consumes the actual field), but the public contract wording in the task is slightly off. Suggest aligning docs or the field name."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_backtest_api.py",
+    "/app/test_reports/pytest/backtest_api.xml"
+  ],
+  "action_items": [
+    "(Optional, minor) Decide whether to rename coverage field 'warmup_bars' → 'warmup' or update docs/STRATEGY_EVALUATION.md to match current API."
+  ],
+  "critical_code_review_comments": [
+    "service.py:_execute — synthetic flag is derived from coverage rows (c.get('synthetic')); confirmed propagates to run.synthetic_data=true for all MOCK runs tested.",
+    "engine.simulate_exit — stop-first ordering on ambiguous bars honoured; limit-fill bars suppress target hit (good no-look-ahead posture).",
+    "api.py _bt wrapper correctly surfaces BacktestError as 422 and ValueError/KeyError as 422 with a prefixed message.",
+    "In MOCK mode with past date range (e.g. 2025-01-01 → 2025-10-01) warehouse only has recent synthetic candles, so warm-up gating returns 0 trades. Backend still returns completed+synthetic warnings; UI correctly hides equity curve and shows coverage warnings. Expected behaviour but worth noting for demo UX.",
+    "Request-identity hashing includes slippage/cost via assumptions — verified identical requests reuse id and slippage mutation creates new id.",
+    "GET /api/backtests/<non-uuid> uses try/except in get_run returning None → 404; good."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_backtest_api.py (new)"
+  ],
+  "success_rate": {"backend": "100% (24/24)", "frontend": "100% (all critical bt-* testids + core flows)"},
+  "test_credentials": "N/A (no auth in this app).",
+  "seed_data_creation": "Transient: uploaded TEST_reliance_note.txt via /api/knowledge/upload and deleted it in the research regression test. Multiple backtest runs created by API tests remain in backtest.runs table (all MOCK/synthetic).",
+  "retest_needed": false,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "System clock inside the container is 2026-10-10; the 'future end-date' rejection is relative to this date. Mock market provider's stored candle window is short (~1 month), so past multi-month ranges often produce 0 trades with warm-up warnings - this is correct behaviour. Backtest execution is a background asyncio task; poll /api/backtests/{id} every ~2s. Reuse-identity key depends on {mode,interval,symbols,start,end,capital,risk_per_trade_pct,slippage_bps,cost_bps_per_side} plus versions + data_versions. Frontend file at /app/frontend/src/pages/Backtesting.jsx uses data-testid prefixes bt-* and strategy-evals-*; nav uses /app/frontend/src/components/Layout.jsx data-testid='nav-backtesting'.",
+  "rca of the issue": "No bugs found. The one minor discrepancy (coverage field name 'warmup_bars' vs 'warmup' in review-request wording) is a documentation/contract-wording issue, not a defect."
+}

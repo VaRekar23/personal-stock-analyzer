@@ -48,8 +48,9 @@ Limits: ≤10 symbols per run. Max range: 1d 3650 days, 15m 365 days, 5m 180 day
 ## Data integrity
 - Backtests run on **stored candles only**. "Prepare data" fetches only the missing leading/trailing ranges from Zerodha,
   chunked (1d 2000 days, 15m 200 days, 5m 100 days per request, about 3 requests/s). It refuses to run in MOCK mode. Interior gaps are reported, not back-filled.
-- Pre-run coverage (`POST /api/backtests/coverage`) reports bars, warm-up, first/last date, duplicates, gaps, partial intraday
-  sessions, invalid OHLC, **>20% open/close discontinuities** (possible unadjusted split/bonus) and sources.
+- Pre-run coverage (`POST /api/backtests/coverage`) reports, per symbol: `bars`, `warmup_bars`, `first`/`last`, `duplicates`,
+  `gap_count`/`gaps`, `partial_sessions`, `invalid_ohlc`, `discontinuities` (>20% open vs prior close, i.e. possible unadjusted split/bonus),
+  `sources`, `synthetic`, `price_adjustment`, `warnings`.
 - **Prices are unadjusted.** Zerodha historical candles are not split/bonus adjusted, and the system never assumes they are.
 - **Synthetic/mock candles** (`source` = mock/synthetic) make the run `synthetic_data=true`, shown with a red
   "NOT a real historical backtest" banner.
