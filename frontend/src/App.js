@@ -9,6 +9,7 @@ import Evals from "@/pages/Evals";
 import DataHealth from "@/pages/DataHealth";
 import SettingsPage from "@/pages/Settings";
 import Research from "@/pages/Research";
+import Backtesting from "@/pages/Backtesting";
 
 const ModePage = () => {
   const { mode } = useParams();
@@ -27,6 +28,7 @@ function App() {
           <Route path="/mode/:mode" element={<ModePage />} />
           <Route path="/evals" element={<Evals />} />
           <Route path="/research" element={<Research />} />
+          <Route path="/backtesting" element={<Backtesting />} />
           <Route path="/data-health" element={<DataHealth />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

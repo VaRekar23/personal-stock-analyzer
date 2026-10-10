@@ -65,3 +65,19 @@ Every fundamental row records **source + retrieved_at + period** for provenance.
 ## Retention (future)
 No retention policy in V1. With TimescaleDB, add compression + `drop_chunks` for
 intraday tables (see V2_ROADMAP.md).
+
+## `knowledge` (V3)
+- `documents` — id, title, symbol, doc_type, source, publication_date, uploaded_at, **content_hash UNIQUE**,
+  status, extraction_version, indexing_status, error_detail, chunk_count, char_count. Indexes: symbol, doc_type.
+- `chunks` — id, document_id (FK **ON DELETE CASCADE**), symbol, seq, page, content, `ts` generated tsvector
+  (GIN index). Retrieval: `ts @@ to_tsquery(...)` ranked by `ts_rank`.
+
+## `backtest` (V3)
+- `runs` — id, identity (sha256 of request+assumptions+versions+data versions; indexed), status, mode, interval,
+  symbols[], start/end date, request, versions, assumptions, data_versions, coverage, metrics, equity_curve,
+  skipped, open_trades, warnings (JSONB), synthetic_data, error, created/started/finished/heartbeat timestamps.
+- `trades` — run_id (FK cascade), seq, symbol, direction, exit_reason, entry_ts, exit_ts, net_pnl, r_net, detail JSONB.
+
+## `index_data.index_memberships` (V3 additions)
+`retrieved_at TIMESTAMPTZ`, `verification_status TEXT DEFAULT 'unverified'` (idempotent `ALTER ... IF NOT EXISTS`).
+All V3 DDL lives in `core/schema.sql` and is applied idempotently at startup — no separate migration tool.

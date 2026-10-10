@@ -4,9 +4,8 @@
 | Var | Purpose | Notes |
 |---|---|---|
 | `DATABASE_URL` | PostgreSQL DSN | source of truth |
-| `REDIS_URL` | Redis DSN | cache; app works if down |
-| `DATA_PROVIDER` | market data provider | `mock` (V1) |
-| `FUNDAMENTAL_PROVIDER` | fundamentals provider | `mock` (V1) |
+| `DATA_PROVIDER` | market data provider | `zerodha` (falls back to mock without a daily token) |
+| `FUNDAMENTAL_PROVIDER` | fundamentals provider | `yfinance` |
 | `NEWS_PROVIDER` | news provider | `mock` (V1) |
 | `AI_PROVIDER` | AI provider | `mock` (V1) |
 | `AI_MODEL` | model id | `mock-analyst-v1` |
@@ -33,5 +32,10 @@ credentials are **never** exposed or editable through the UI/API.
 `INDICATOR_VERSION`, `STRATEGY_VERSIONS`, `SCORING_VERSION`, `RISK_VERSION`, `PROMPT_VERSIONS`.
 
 ## Supervisor programs
-`backend` (:8001), `frontend` (:3000), `postgresql` (:5432), `redis` (:6379), `mongodb`.
-`postgresql`/`redis` added via `/etc/supervisor/conf.d/datastores.conf`.
+`backend` (:8001), `frontend` (:3000), `postgresql` (:5432), `mongodb`.
+`postgresql` added via `/etc/supervisor/conf.d/datastores.conf`.
+
+## V3 settings (code constants)
+- Research: `MAX_UPLOAD_MB=15` (api.py), `CHUNK_CHARS=1100`, `CHUNK_OVERLAP=150`, `MAX_RETRIEVE=8` (providers/knowledge.py).
+- Backtest: `MAX_SYMBOLS=10`, `MAX_RANGE_DAYS`, `KITE_CHUNK_DAYS`, `STALE_MINUTES=10` (backtest/service.py);
+  `DEFAULT_ASSUMPTIONS`, `WINDOW`, `WARMUP` (backtest/engine.py). Capital, risk %, slippage and cost are per-run inputs.

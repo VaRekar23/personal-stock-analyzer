@@ -15,19 +15,19 @@ Foundations for these exist in V1; do not build them until needed.
 - Prompt version bumps as prompts evolve; keep old versions for EVAL comparability.
 
 ## RAG (KnowledgeProvider)
-- Replace `NullKnowledgeProvider` with a vector-store-backed retriever over annual/
-  quarterly reports, transcripts, filings, investor notes. **Never** for computing
-  price/indicators/trade levels. Justify any vector-DB cost in docs.
+- **DONE in V3** with PostgreSQL full-text search (`PgKnowledgeProvider`); no vector DB. See KNOWLEDGE_RESEARCH.md.
+  Future: optional pgvector + local embeddings.
 
 ## Analysis & strategy
-- **Historical strategy evaluation / backtesting** using `index_memberships` (point-in-time,
-  survivorship-bias-free) + the `evaluation` schema (expected vs realized outcomes).
+- **DONE in V3 (single symbols / user lists)**: deterministic backtester `backtest_v1`, see STRATEGY_EVALUATION.md.
+  Index-wide point-in-time universes remain blocked on verified membership data.
 - Strategy optimization / weight tuning; additional strategies (versioned `*_v2`).
 - Richer market/sector context from real index feeds; more fundamental sources.
 - Advanced alerts; scheduled scans; deeper news sentiment analysis.
 
 ## Historical membership import
-- Documented importer from NSE archives to replace the current labelled current-list seed.
+- V3 added a CSV importer with mandatory source + `verification_status` (`POST /api/index-memberships/import`).
+  Automated NSE archive download is not implemented (access restrictions); verified data must be supplied by the user.
 
 ## Explicitly still NOT planned
 Automated order execution, autonomous trading agents, multi-tenant SaaS/billing, mobile app.

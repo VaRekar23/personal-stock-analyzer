@@ -36,3 +36,11 @@ strategy_version, prompt_version, provider, model — never symbol alone.
 ## Acceptance (zero-Redis)
 App starts with `REDIS_URL` absent and no Redis service; Data Health reports cache as
 **PostgreSQL Cache** (`backend: postgresql`); no endpoint fails because Redis is unavailable.
+
+## V3 additions
+- **Research answers**: key `research:<sha>` over query + retrieved chunk ids + prompt_version + provider + model
+  (TTL = `ai_ttl_seconds`). New, changed or deleted documents change the retrieved chunk ids, which changes the key, so stale answers are never served.
+  Fallback/no-evidence responses are not cached.
+- **Backtests** are not stored in the TTL cache. Completed runs are permanent rows in `backtest.runs`, reused when the
+  full identity (request, assumptions, strategy/indicator/scoring/risk/backtest versions, risk-config and weights hashes,
+  per-symbol data versions) matches exactly. Any change produces a new run.

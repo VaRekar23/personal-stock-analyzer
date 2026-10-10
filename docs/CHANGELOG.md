@@ -186,3 +186,8 @@ No hardcoded LTIM mapping; tokens come from the live Kite instrument master/API.
 
 ## V3 Part A (2026-10-10)
 - Knowledge Research (RAG): PostgreSQL full-text search, PgKnowledgeProvider, content-hash dedupe, pypdf extraction, grounded research via AI provider chain with citation resolution and prompt-injection guard. New endpoints /api/knowledge/* and /api/research; new /research UI page. 41/41 tests pass. Part B (backtester) deferred.
+
+## V3 Part B (2026-10-10)
+- Deterministic backtester backtest_v1 (stockai/backtest/): bar-close signals, next-bar limit entry at zone edge, stop-first ambiguity, gap rules, full T1 exit + T2 counterfactual, costs/slippage gross vs net, unresolved trades, intraday session exits.
+- Metrics + equity curve, coverage/quality checks, chunked Zerodha data prep (missing ranges only), PG job runs with identity reuse + heartbeat recovery, membership CSV importer + verification_status. Index-wide runs disabled.
+- 21 synthetic strategy EVAL fixtures (/api/evals/strategy). /backtesting UI. tests: 70 passed. Docs: STRATEGY_EVALUATION.md; stale Redis/mock docs reconciled.

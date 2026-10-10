@@ -14,11 +14,14 @@ Graders in `framework.grade_ai_output(ai, context)`:
 - **grounding** — if the score has missing factors, the AI must surface missing-data warnings.
 - **completeness** — required sections present (summary, bias, at least one factor list).
 
-### B. Strategy EVAL foundation
-Data model + runner to evaluate historical trade setups later:
-`eval_datasets`, `eval_cases`, `eval_runs`, `eval_results` (expected vs actual, pass/fail,
-score, metadata). V1 seeds a `strategy_foundation_v1` dataset placeholder; the historical
-performance evaluation itself is a V2 item (see V2_ROADMAP.md).
+### B. Strategy EVALS (V3 — implemented, separate from AI EVALS)
+Deterministic checks of the backtester's accounting on **SYNTHETIC** hand-built OHLC fixtures
+(`backtest/fixtures.py`, 21 cases with mathematically defined expectations). Run via
+`GET /api/evals/strategy`, the Backtesting page "Strategy EVALS" panel, and `tests/test_backtest.py`.
+Covers entry/stop/target outcomes, same-bar ambiguity, gaps, costs, unresolved trades, T2 counterfactual,
+next-candle execution, no look-ahead, determinism, Risk-Engine level parity, warm-up, missing data,
+membership eligibility and small-sample metrics. Details: `STRATEGY_EVALUATION.md`.
+AI quality scores and trading results are never mixed.
 
 ## Datasets (seeded at startup)
 - `ai_synthetic_v1` — synthetic hallucination-detection cases (labelled **synthetic**):

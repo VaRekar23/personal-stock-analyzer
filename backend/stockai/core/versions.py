@@ -21,3 +21,4 @@ PROMPT_VERSIONS = {
 
 SCORING_VERSION = "scoring_v1"
 RISK_VERSION = "risk_v1"
+BACKTEST_VERSION = "backtest_v1"

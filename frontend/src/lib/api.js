@@ -37,4 +37,11 @@ export const api = {
       headers: { "Content-Type": "multipart/form-data" },
     }).then((r) => r.data),
   research: (body) => client.post("/research", body).then((r) => r.data),
+  backtestOptions: () => client.get("/backtests/options").then((r) => r.data),
+  backtestCoverage: (body) => client.post("/backtests/coverage", body).then((r) => r.data),
+  backtestPrepare: (body) => client.post("/backtests/prepare", body, { timeout: 300000 }).then((r) => r.data),
+  backtestCreate: (body) => client.post("/backtests", body).then((r) => r.data),
+  backtestList: () => client.get("/backtests").then((r) => r.data),
+  backtestGet: (id) => client.get(`/backtests/${id}`).then((r) => r.data),
+  strategyEvals: () => client.get("/evals/strategy").then((r) => r.data),
 };

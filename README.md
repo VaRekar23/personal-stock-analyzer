@@ -1,58 +1,50 @@
-# StockAI — Personal AI-Powered Indian Stock Analysis Platform (V1)
+# StockAI — Personal AI-Powered Indian Stock Analysis Platform (V3)
 
-A personal, single-user quantitative research and portfolio-intelligence platform for
-Indian equities (NSE / NIFTY 50). It combines **deterministic** technical/fundamental
-analysis, quantitative scoring and a **deterministic Risk Engine** with an **AI
-explanation layer**. It is **not** an automated trading / order-placement system.
+A personal, single-user research and portfolio-intelligence platform for Indian equities (NSE).
+It combines **deterministic** technical/fundamental analysis, quantitative scoring and a
+**deterministic Risk Engine** with an **AI explanation layer**. V3 adds **document-grounded company research (RAG)**
+and **deterministic historical strategy evaluation (backtesting)**. It is **not** a trading or order-placement system.
 
-> **Core principle:** Python calculates facts (indicators, scores, trade levels);
-> AI explains and synthesizes structured facts. The AI never invents prices,
-> indicators or trade levels.
+> **Core principle:** Python calculates facts (indicators, scores, trade levels, backtest results).
+> AI explains and synthesizes supplied facts and cited documents. The AI never invents prices,
+> indicators, trade levels or sources.
 
 ## Status of this build
-This is a **working end-to-end V1 vertical slice**. All external providers
-(Zerodha/Kite, TrueData fundamentals/news, OpenAI) run through **provider
-interfaces** with **deterministic MOCK implementations** that are clearly labelled
-`DEMO / MOCK DATA` in the UI and `source=mock` in the data. No credentials are
-required to run it.
-
-## Tech stack (as deployed here)
-| Layer | Chosen | Notes |
+| Capability | Provider / implementation | Notes |
 |---|---|---|
-| Frontend | React + Tailwind + shadcn/ui + Recharts (JS) | Dark "terminal" dashboard. (Spec's MUI/TS deferred — see docs/V1_SCOPE.md.) |
-| Backend | Python + FastAPI + Pydantic + Pandas/NumPy | Domain logic decoupled from routes |
-| Database | **PostgreSQL 15** (Timescale-ready schema) | Source of truth. TimescaleDB extension unavailable on this arch — hypertables documented as target |
-| Cache | **Redis 7** | Graceful in-memory fallback |
-| AI | AIProvider abstraction → MockAIProvider | OpenAI/Anthropic/Gemini addable without touching business logic |
+| Market data + portfolio | Zerodha Kite Connect (`DATA_PROVIDER=zerodha`) | Live only after the daily login (Settings → Broker Connection). Without a token it falls back to a clearly labelled **MOCK** provider. |
+| Fundamentals + news | yfinance (`FUNDAMENTAL_PROVIDER/NEWS_PROVIDER=yfinance`) | Free, current-snapshot only (no point-in-time history). Personal use. |
+| AI | OpenAI (`AI_MODEL`, e.g. gpt-4o-mini) → Gemini fallback (`GEMINI_MODEL`) | Gemini answers automatically when OpenAI fails (e.g. quota). |
+| Cache | **PostgreSQL** `system.cache_entries` | Redis was removed in V2. |
+| Knowledge research (V3) | PostgreSQL full-text search | See `docs/KNOWLEDGE_RESEARCH.md` |
+| Backtesting (V3) | Deterministic replay, PostgreSQL job records | See `docs/STRATEGY_EVALUATION.md` |
+
+## Tech stack
+| Layer | Chosen |
+|---|---|
+| Frontend | React (JavaScript) + Tailwind + shadcn/ui + Recharts |
+| Backend | Python + FastAPI + Pydantic + NumPy |
+| Database / cache | PostgreSQL 15 (standard; TimescaleDB not required) |
+| Documents | pypdf (text PDFs; no OCR) |
 
 ## Run
-Services are managed by supervisor (`backend`, `frontend`, `postgresql`, `redis`, `mongodb`).
-- Backend: FastAPI on `:8001` (all routes under `/api`).
-- Frontend: React on `:3000` (uses `REACT_APP_BACKEND_URL`).
-
+Supervisor programs: `backend` (:8001, routes under `/api`), `frontend` (:3000), `postgresql`.
 ```
 sudo supervisorctl status
 curl $REACT_APP_BACKEND_URL/api/health
+cd backend && python -m pytest tests/ -q
 ```
+Deployment (GCP Cloud Run): `docs/DEPLOYMENT.md`.
 
-## Read the docs first (for V2 / future agents)
-Start here, in order:
-1. `docs/V1_SCOPE.md`
-2. `docs/ARCHITECTURE.md`
-3. `docs/CODE_STRUCTURE.md`
-4. `docs/DATABASE_SCHEMA.md`
-5. `docs/API_INTEGRATIONS.md`
-6. `docs/CHANGELOG.md`
+## Docs (read in order)
+`docs/V3_IMPLEMENTATION_STATUS.md`, `ARCHITECTURE`, `CODE_STRUCTURE`, `DATABASE_SCHEMA`, `API_INTEGRATIONS`,
+`KNOWLEDGE_RESEARCH`, `STRATEGY_EVALUATION`, `EVALS`, `CACHE_STRATEGY`, `CONFIGURATION`, `CHANGELOG`.
 
-Then: `DATA_PIPELINES`, `ANALYSIS_ENGINE`, `SCORING_AND_RISK`, `AI_ARCHITECTURE`,
-`EVALS`, `CACHE_STRATEGY`, `CONFIGURATION`, `V2_ROADMAP`.
-
-## Acceptance workflows (all supported)
-- Search RELIANCE → run Long-term / Swing / Intraday analysis (score, confidence, factors, risks, AI explanation).
-- NIFTY 50 → Swing / Intraday scan → ranked candidates (AI only on finalists).
-- Portfolio → mock Zerodha holdings analysed with documented health rules.
-- Re-run same analysis → served from cache, no repeat AI call.
-- EVALS → synthetic hallucination cases + live-pipeline grounding checks with pass/fail/scores/versions.
-- Mock-only mode → app fully functional, clearly labelled demo data.
+## Workflows
+- Stock Analysis: Long-term / Swing / Intraday (score, factors, risk setup, AI explanation).
+- NIFTY 50 scanner (deterministic ranking; AI only on finalists). Portfolio analysis from Zerodha holdings.
+- Research: upload annual reports/transcripts/notes → ask questions → cited answers with inspectable excerpts.
+- Backtesting: check coverage → prepare data (Zerodha) → run → metrics, equity curve, per-trade table. Runs are stored and reproducible.
+- EVALS: AI EVALS (grounding/hallucination) and, separately, Strategy EVALS (synthetic backtest accounting fixtures).
 
 **Disclaimer:** Research & decision-support only. Not investment advice. No orders are placed.

@@ -11,7 +11,7 @@ stockai/
     logging_config.py         Structured logging + secret redaction
     db.py                     asyncpg pool, schema init, fetch/execute helpers, health
     schema.sql                Full DDL (7 schemas). Idempotent.
-    cache.py                  Redis client + in-memory fallback + stats + health
+    cache.py                  PostgreSQL-backed cache (cache_entries, TTL, namespaces) + stats + health
   config/weights.yaml         Configurable strategy weights (long_term/swing/intraday)
   providers/
     base.py                   Interfaces: MarketData/Fundamental/News/Portfolio/AI/Knowledge
@@ -27,7 +27,7 @@ stockai/
     schemas.py                AIAnalysis Pydantic schema (structured output)
     prompts.py                Versioned prompt templates + grounding system instruction
     mock_provider.py          MockAIProvider (grounded; echoes only supplied numbers)
-    service.py                AIService: cache-key, Redis+DB cache, schema validation
+    service.py                AIService: cache-key, PG cache + ai_analyses, schema validation
   indicators/engine.py        Deterministic indicators (technical_v1)
   context/engines.py          MarketContextEngine, SectorContextEngine
   strategies/
@@ -74,3 +74,17 @@ pages/
 - **New API route** → `api.py` (keep handlers thin; logic in domain layer).
 - **New EVAL case** → `evals/datasets.py` (`SYNTHETIC_AI_CASES` or a new dataset) + seed.
 - **RAG** → implement `KnowledgeProvider` (replace `NullKnowledgeProvider`).
+
+## V3 modules
+```
+backend/stockai/
+  providers/knowledge.py     PgKnowledgeProvider (ingest/chunk/FTS retrieve/delete) + PDF extraction
+  knowledge/research.py      Grounded research: retrieval → AI chain → cited ResearchAnswer
+  backtest/engine.py         Replay engine (no look-ahead), entry/exit/accounting rules
+  backtest/metrics.py        Deterministic metrics + equity curve
+  backtest/quality.py        Coverage/quality assessment
+  backtest/service.py        Stored-data loading, Zerodha data prep, identity, PG job runs, membership import
+  backtest/fixtures.py       Strategy EVALS (synthetic fixtures)
+backend/tests/test_knowledge.py, test_backtest.py, conftest.py
+frontend/src/pages/Research.jsx, Backtesting.jsx; components/backtest/*
+```

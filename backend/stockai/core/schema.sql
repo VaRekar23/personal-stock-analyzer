@@ -158,3 +158,49 @@ CREATE TABLE IF NOT EXISTS knowledge.chunks (
 CREATE INDEX IF NOT EXISTS ix_chunks_ts ON knowledge.chunks USING GIN (ts);
 CREATE INDEX IF NOT EXISTS ix_chunks_doc ON knowledge.chunks (document_id);
 CREATE INDEX IF NOT EXISTS ix_chunks_symbol ON knowledge.chunks (symbol);
+
+-- V3: Historical strategy evaluation (backtest_v1).
+CREATE SCHEMA IF NOT EXISTS backtest;
+CREATE TABLE IF NOT EXISTS backtest.runs (
+    id UUID PRIMARY KEY,
+    identity TEXT NOT NULL,
+    status TEXT NOT NULL,
+    mode TEXT NOT NULL,
+    interval TEXT NOT NULL,
+    symbols TEXT[] NOT NULL,
+    start_date DATE NOT NULL,
+    end_date DATE NOT NULL,
+    request JSONB NOT NULL,
+    versions JSONB NOT NULL,
+    assumptions JSONB NOT NULL,
+    data_versions JSONB,
+    coverage JSONB,
+    metrics JSONB,
+    equity_curve JSONB,
+    skipped JSONB,
+    open_trades JSONB,
+    warnings JSONB,
+    synthetic_data BOOLEAN NOT NULL DEFAULT false,
+    error TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    started_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
+    heartbeat_at TIMESTAMPTZ);
+CREATE INDEX IF NOT EXISTS ix_bt_identity ON backtest.runs (identity);
+CREATE INDEX IF NOT EXISTS ix_bt_created ON backtest.runs (created_at DESC);
+CREATE TABLE IF NOT EXISTS backtest.trades (
+    id SERIAL PRIMARY KEY,
+    run_id UUID NOT NULL REFERENCES backtest.runs(id) ON DELETE CASCADE,
+    seq INTEGER NOT NULL,
+    symbol TEXT NOT NULL,
+    direction TEXT NOT NULL,
+    exit_reason TEXT NOT NULL,
+    entry_ts TIMESTAMPTZ,
+    exit_ts TIMESTAMPTZ,
+    net_pnl NUMERIC,
+    r_net NUMERIC,
+    detail JSONB NOT NULL);
+CREATE INDEX IF NOT EXISTS ix_bt_trades_run ON backtest.trades (run_id, seq);
+
+ALTER TABLE index_data.index_memberships ADD COLUMN IF NOT EXISTS retrieved_at TIMESTAMPTZ;
+ALTER TABLE index_data.index_memberships ADD COLUMN IF NOT EXISTS verification_status TEXT NOT NULL DEFAULT 'unverified';

@@ -3,7 +3,7 @@
 ```
 source (provider) → ingestion (warehouse) → storage (PostgreSQL)
 → features (indicators) → context (market/sector) → strategy → scoring
-→ risk → AI explanation → cache (Redis + ai_analyses) → API → UI
+→ risk → AI explanation → cache (PostgreSQL cache_entries + ai_analyses) → API → UI
 ```
 
 ## Ingestion (market data)
@@ -40,9 +40,9 @@ File: `stockai/data/warehouse.py`.
 
 ## AI + cache
 - `AIService.explain` builds a cache key from symbol, type, date, market_data_version,
-  strategy_version, prompt_version, provider, model. Checks Redis → `ai_analyses` → calls
+  strategy_version, prompt_version, provider, model. Checks PG cache → `ai_analyses` → calls
   provider → validates schema → writes both caches.
-- Analysis results are cached in Redis (`analysis:<mode>:<symbol>`) and persisted to
+- Analysis results are cached in the PostgreSQL cache (`analysis:<mode>:<symbol>`) and persisted to
   `analysis.analysis_runs` with full version provenance.
 
 ## Scanner pipeline (cost-controlled)
@@ -55,3 +55,9 @@ File: `stockai/data/warehouse.py`.
 ## Market-data version
 `Warehouse.market_data_version(candles)` = short hash of last ts + last close + length.
 Used in AI cache keys so results invalidate when underlying data materially changes.
+
+## V3 pipelines
+- **Documents**: upload → validate (type, ≤15 MB) → extract (pypdf/utf-8; scanned PDF rejected) → normalise → chunk
+  (1100/150) → content-hash dedupe → store + GIN index → retrieve on query.
+- **Backtest data**: coverage check on stored candles → optional "Prepare data" (missing leading/trailing ranges from
+  Zerodha, chunked, idempotent upsert) → replay over stored candles only. Mock candles are flagged SYNTHETIC.

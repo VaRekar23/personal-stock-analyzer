@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard, Briefcase, LineChart, Search, TrendingUp, Zap, Clock,
-  CheckCircle2, Activity, Settings, Terminal, BookOpen,
+  CheckCircle2, Activity, Settings, Terminal, BookOpen, History,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { pct, signClass, timeIST } from "@/lib/format";
@@ -19,6 +19,7 @@ const NAV = [
   { label: "Intraday", icon: Clock, path: "/mode/intraday", testid: "nav-intraday" },
   { label: "EVALS", icon: CheckCircle2, path: "/evals", testid: "nav-evals" },
   { label: "Research", icon: BookOpen, path: "/research", testid: "nav-research" },
+  { label: "Backtesting", icon: History, path: "/backtesting", testid: "nav-backtesting" },
   { label: "Data Health", icon: Activity, path: "/data-health", testid: "nav-data-health" },
   { label: "Settings", icon: Settings, path: "/settings", testid: "nav-settings" },
 ];

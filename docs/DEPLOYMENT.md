@@ -116,3 +116,9 @@ Add the live keys above only for the providers you switch off `mock`.
 Use Emergent's built-in **"Save to GitHub"** control in the UI (top-right of the chat) —
 see the assistant message for the exact steps returned by support. That connects your
 GitHub account and pushes the repository; you don't run git manually from here.
+
+## V3 notes
+- No new services or secrets. `pypdf` was added to `requirements.txt`. The schema auto-applies at startup.
+- Backtests run as in-process background tasks. On Cloud Run, deploy the backend with **CPU always allocated**
+  (`gcloud run deploy ... --no-cpu-throttling`) and preferably `--max-instances=1`, because job heartbeats are per-instance.
+  Runs interrupted by an instance shutdown are marked `failed` after 10 minutes and can be re-run.

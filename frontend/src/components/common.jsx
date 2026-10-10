@@ -77,6 +77,10 @@ const PILL = {
   degraded: "border-watch/40 bg-watch/10 text-watch",
   down: "border-bear/40 bg-bear/10 text-bear",
   "pending-v2": "border-slate-600 bg-slate-700/30 text-slate-400",
+  completed: "border-bull/40 bg-bull/10 text-bull",
+  running: "border-cyan/40 bg-cyan/10 text-cyan",
+  queued: "border-slate-600 bg-slate-700/30 text-slate-400",
+  failed: "border-bear/40 bg-bear/10 text-bear",
 };
 export const StatusPill = ({ status, testid }) => {
   const key = (status || "").toLowerCase();

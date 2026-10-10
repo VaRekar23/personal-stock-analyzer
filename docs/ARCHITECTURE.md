@@ -27,7 +27,7 @@ flowchart LR
   SCORE --> AISVC[AIService]
   RISK --> AISVC
   AISVC --> AIP[AIProvider -> MockAIProvider]
-  AISVC --> CACHE[(Redis + ai_analyses)]
+  AISVC --> CACHE[(PG cache_entries + ai_analyses)]
   STR --> RUNS[(analysis.analysis_runs)]
   SCORE --> EV[EVALS framework]
   AISVC --> EV
@@ -56,8 +56,8 @@ flowchart LR
 - No secrets ever reach the browser; only non-sensitive settings are exposed via `/api/settings`.
 
 ## Cache flow
-- Read-through cache on analysis/scan/AI. Redis primary; **in-memory fallback** if Redis
-  is down (functionality preserved, Data Health shows DEGRADED). See CACHE_STRATEGY.md.
+- Read-through cache on analysis/scan/AI/research, backed by PostgreSQL (`system.cache_entries`,
+  TTL + namespaces). No Redis (removed in V2). See CACHE_STRATEGY.md.
 
 ## AI flow (cost-controlled)
 - Scanner scores all 50 deterministically, then calls AI only for the top-N finalists
@@ -66,11 +66,17 @@ flowchart LR
 ## Error handling
 - Providers return structured errors; the live Zerodha/TrueData adapters raise
   `ProviderPendingError` ("pending verification") instead of fabricating data.
-- DB/Redis outages degrade gracefully; nothing returns fabricated "success".
+- DB outages degrade gracefully; nothing returns fabricated "success".
 
 ## Why these technologies
 - **FastAPI/Pydantic**: async, typed request/response, schema validation for AI output.
 - **PostgreSQL**: relational integrity for the multi-schema model; Timescale-ready for
   time-series scale-out.
-- **Redis**: cheap, fast cache to satisfy the cost-control requirement.
+- **PostgreSQL cache**: one datastore for data + cache (no Redis) to minimise cost and ops.
 - **Provider abstraction**: hard requirement to swap vendors without rewrites.
+
+## V3 additions
+- **Research**: `PgKnowledgeProvider` (PostgreSQL FTS) behind `KnowledgeProvider` → `run_research` → AIProvider chain.
+- **Backtesting**: `backtest/service` loads stored candles → `engine.replay_symbol` (existing indicators, strategies
+  and Risk Engine, point-in-time) → metrics → `backtest.runs/trades`. It runs as a bounded asyncio task with a heartbeat. There is no queue,
+  worker or Redis.

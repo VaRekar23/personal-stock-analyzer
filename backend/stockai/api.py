@@ -19,6 +19,8 @@ from .analysis.orchestrator import get_orchestrator, reset_orchestrator
 from .analysis.portfolio import analyze_portfolio
 from .evals.datasets import run_evals
 from .knowledge.research import run_research
+from .backtest import service as bt_service, engine as bt_engine
+from .backtest.fixtures import run_strategy_evals
 from .settings_store import get_settings, update_settings
 from .data.nifty50 import NIFTY50
 
@@ -381,3 +383,78 @@ async def research(req: ResearchReq):
         raise HTTPException(400, "Query too short")
     return await run_research(query=req.query.strip(),
                               symbol=(req.symbol or None), k=req.k)
+
+
+# ---------------- Historical strategy evaluation (backtest_v1, V3) ----------------
+class BacktestReq(BaseModel):
+    mode: str
+    interval: str
+    symbols: list[str]
+    start: str
+    end: str
+    capital: float = 1_000_000
+    risk_per_trade_pct: float = 1.0
+    slippage_bps: float = 0.0
+    cost_bps_per_side: float = 0.0
+    universe: str | None = None
+
+
+async def _bt(fn, *args):
+    if not db.is_up():
+        raise HTTPException(503, "Database unavailable — backtests require PostgreSQL.")
+    try:
+        return await fn(*args)
+    except bt_service.BacktestError as e:
+        raise HTTPException(422, str(e))
+    except (ValueError, KeyError) as e:
+        raise HTTPException(422, f"Invalid request: {e}")
+
+
+@api_router.get("/backtests/options")
+async def backtest_options():
+    return {"mode_intervals": bt_engine.MODE_INTERVALS, "assumptions": bt_engine.DEFAULT_ASSUMPTIONS,
+            "max_symbols": bt_service.MAX_SYMBOLS, "max_range_days": bt_service.MAX_RANGE_DAYS,
+            "data_source": registry.data_source(), "version": V.BACKTEST_VERSION,
+            "index_universe": "disabled — point-in-time membership not verified"}
+
+
+@api_router.post("/backtests/coverage")
+async def backtest_coverage(req: BacktestReq):
+    return await _bt(bt_service.coverage, req.model_dump())
+
+
+@api_router.post("/backtests/prepare")
+async def backtest_prepare(req: BacktestReq):
+    return await _bt(bt_service.prepare, req.model_dump())
+
+
+@api_router.post("/backtests")
+async def backtest_create(req: BacktestReq):
+    return await _bt(bt_service.create_run, req.model_dump())
+
+
+@api_router.get("/backtests")
+async def backtest_list(limit: int = Query(50, ge=1, le=200)):
+    return {"runs": await _bt(bt_service.list_runs, limit)}
+
+
+@api_router.get("/backtests/{run_id}")
+async def backtest_get(run_id: str):
+    run = await _bt(bt_service.get_run, run_id)
+    if not run:
+        raise HTTPException(404, "Backtest run not found")
+    return run
+
+
+@api_router.get("/evals/strategy")
+async def strategy_evals():
+    return run_strategy_evals()
+
+
+@api_router.post("/index-memberships/import")
+async def index_memberships_import(file: UploadFile = File(...), source: str = Form(...),
+                                   verified: bool = Form(False)):
+    data = await file.read()
+    if len(data) > 2 * 1024 * 1024:
+        raise HTTPException(413, "CSV exceeds 2 MB")
+    return await _bt(bt_service.import_memberships, data, source, verified)

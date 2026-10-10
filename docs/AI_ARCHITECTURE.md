@@ -45,3 +45,16 @@ and that unchanged effective input is never re-billed. Backed by Redis + `ai_ana
 ## Cost control
 AI is never the first stage. Scanner runs AI only on top-N finalists above a score
 threshold (Settings-tunable). Single-stock analysis calls AI once and caches aggressively.
+
+## V3 — Document-grounded research
+- `knowledge/research.py` calls the same provider chain (OpenAI → Gemini) with `context.task="research"`, which bypasses the
+  analysis-specific post-processing (bias/confidence override) in each provider.
+- Output schema `ResearchAnswer` (answer, key_findings, supporting_evidence, citations, contradictions,
+  missing_information, caveats) with tolerant coercion of loosely-typed model output. Citations are resolved against
+  the actually-retrieved chunks; unknown refs are dropped.
+- **Retrieval choice**: PostgreSQL full-text search (GIN tsvector, OR-of-terms query, ts_rank, ≤8 chunks). pgvector
+  and embeddings were deliberately **not** added (user decision: no extra cost/dependencies). Limitation: lexical matching
+  only (no synonyms/semantics). Upgrade path: add pgvector + local embeddings behind the same `KnowledgeProvider`.
+- Prompt-injection guard: the system text instructs the model to treat evidence as untrusted data. Verified with a planted
+  instruction in a test document.
+- AI is never used by the backtester.

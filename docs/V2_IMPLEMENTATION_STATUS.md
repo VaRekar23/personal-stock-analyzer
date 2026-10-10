@@ -32,4 +32,4 @@ Redis service).
 - Verify & integrate a licensed fundamental provider (TrueData/Stoxim) if Yahoo's terms are
   insufficient for the use case (abstraction already supports swap).
 - TimescaleDB hypertables once the extension is available in the target environment.
-- Strategy-evaluation runner (post-trade R) — schema exists; runner is V3.
+- Strategy-evaluation runner — **delivered in V3** as `backtest_v1` (see V3_IMPLEMENTATION_STATUS.md).

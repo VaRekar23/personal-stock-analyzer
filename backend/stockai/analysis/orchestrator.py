@@ -2,7 +2,7 @@
 
 Flow: warehouse candles -> indicators -> market/sector context -> strategy
 score -> risk engine -> (optional) AI explanation. AI is NEVER the first stage
-and is only called for finalists (cost control). Results are cached (Redis) and
+and is only called for finalists (cost control). Results are cached (PostgreSQL cache) and
 persisted (analysis.analysis_runs) with full version provenance.
 """
 from __future__ import annotations
